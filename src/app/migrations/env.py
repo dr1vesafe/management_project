@@ -9,6 +9,7 @@ from src.app.config import settings
 from src.app.database import Base
 from src.app.models.user import User
 from src.app.models.team import Team
+from src.app.models.task import Task
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
