@@ -1,7 +1,7 @@
 from enum import Enum
 
-from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Enum as SQLEnum
-from sqlalchemy.orm import relationship
+from sqlalchemy import String, Boolean, Integer, ForeignKey, Enum as SQLEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.app.database import Base
 
@@ -15,15 +15,18 @@ class UserRole(str, Enum):
 class User(Base):
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False, index=True)
-    hashed_password = Column(String, nullable=False)
-    is_active = Column(Boolean, default=True)
-    is_superuser = Column(Boolean, default=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    first_name: Mapped[str] = mapped_column(String, nullable=False)
+    last_name: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    role = Column(SQLEnum(UserRole), default=UserRole.user, nullable=False)
+    role: Mapped[UserRole] = mapped_column(SQLEnum(UserRole), default=UserRole.user, nullable=False)
+
+    team_id: Mapped[int] = mapped_column(Integer, ForeignKey('teams.id', ondelete='SET NULL'), nullable=True)
+    team = relationship('Team', back_populates='members')
 
     def __repr__(self):
         return f'<Use id={self.id} email={self.email} role={self.role}>'
