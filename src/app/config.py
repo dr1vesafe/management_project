@@ -14,12 +14,21 @@ class Settings(BaseSettings):
     SECRET: str
 
     @property
-    def DATABASE_URL(self) -> str:
-        """Формирование URL для подключения к базе данных"""
+    def BASE_DATABASE_URL(self) -> str:
         return (
-            f'postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}'
+            f'{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}'
             f'@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}'
         )
+    
+    @property
+    def DATABASE_URL(self) -> str:
+        """Формирование URL для подключения к базе данных"""
+        return f'postgresql+asyncpg://{self.BASE_DATABASE_URL}'
+    
+    @property
+    def SYNC_DATABASE_URL(self) -> str:
+        """Формирование URL для использования в миграциях Alembic"""
+        return f'postgresql://{self.BASE_DATABASE_URL}'
     
     class Config:
         env_file = '.env'
