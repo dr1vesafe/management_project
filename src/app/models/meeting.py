@@ -4,7 +4,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Integer, String, Text, DateTime, ForeignKey
 
 from src.app.database import Base
-from src.app.models.meeting_participants import MeetingParticipant
 
 
 class Meeting(Base):
@@ -23,9 +22,7 @@ class Meeting(Base):
     team_id: Mapped[int] = mapped_column(ForeignKey('teams.id', ondelete='CASCADE'), nullable=False)
     team = relationship('Team', backref='meetings')
 
-    participants: Mapped[list[MeetingParticipant]] = relationship(
-        'MeetingParticipant', back_populates='meeting', cascade='all, delete-orphan'
-    )
+    participants = relationship('MeetingParticipant', back_populates='meeting', cascade='all, delete-orphan')
 
     def __repr__(self) -> str:
         return f'<Meeting id={self.id} title={self.title} sheduled_at={self.scheduled_at}>'
