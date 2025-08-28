@@ -21,7 +21,7 @@ class Team(Base):
         String, unique=True, nullable=False, default=generate_team_code
         )
     
-    members = relationship('User', back_populates='team', cascade='all, delete-orphan')
+    members: Mapped[list['User']] = relationship('User', back_populates='team', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Team id={self.id} name={self.name} code={self.code}>'

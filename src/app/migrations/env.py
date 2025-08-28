@@ -10,6 +10,8 @@ from src.app.database import Base
 from src.app.models.user import User
 from src.app.models.team import Team
 from src.app.models.task import Task
+from src.app.models.meeting import Meeting
+from src.app.models.meeting_participants import MeetingParticipant
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

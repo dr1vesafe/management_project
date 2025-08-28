@@ -5,8 +5,6 @@ from sqlalchemy import Integer, String, Text, ForeignKey, DateTime, Enum as SQLE
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.app.database import Base
-from src.app.models.user import User
-from src.app.models.team import Team
 
 
 class TaskStatus(str, Enum):
