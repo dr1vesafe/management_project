@@ -31,10 +31,10 @@ class Evaluation(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     manager_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    manager = relationship('User', back_populates='given_evaluations')
+    manager = relationship('User', back_populates='given_evaluations', foreign_keys=[manager_id])
 
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    user = relationship('User', back_populates='received_evaluations')
+    user = relationship('User', back_populates='received_evaluations', foreign_keys=[user_id])
 
     task_id: Mapped[int] = mapped_column(Integer, ForeignKey('tasks.id', ondelete='CASCADE'), nullable=False)
     task = relationship('Task', back_populates='evaluations')

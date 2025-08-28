@@ -32,5 +32,7 @@ class Task(Base):
     team_id: Mapped[int] = mapped_column(Integer, ForeignKey('teams.id', ondelete='CASCADE'), nullable=False)
     team = relationship('Team', backref='tasks')
 
+    evaluations = relationship('Evaluation', back_populates='task', cascade='all, delete-orphan')
+
     def __repr__(self) -> str:
         return f'<Task id={self.id} title={self.title} status={self.status}>'
