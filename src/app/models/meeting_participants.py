@@ -5,6 +5,7 @@ from src.app.database import Base
 
 
 class MeetingParticipant(Base):
+    """Промежуточная таблица для связи User и Meeting"""
     __tablename__ = 'meeting_participants'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

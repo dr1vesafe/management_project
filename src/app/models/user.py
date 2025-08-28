@@ -7,12 +7,14 @@ from src.app.database import Base
 
 
 class UserRole(str, Enum):
+    """Варианты роли пользователя"""
     user = 'user'
     manager = 'manager'
     admin = 'admin'
 
 
 class User(Base):
+    """Модель пользователя"""
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

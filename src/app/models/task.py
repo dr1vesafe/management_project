@@ -8,12 +8,14 @@ from src.app.database import Base
 
 
 class TaskStatus(str, Enum):
+    """Варианты статуса задачи"""
     open = 'open'
     in_progress = 'in_progress'
     done = 'done'
 
 
 class Task(Base):
+    """Модель для создания задач"""
     __tablename__ = 'tasks'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

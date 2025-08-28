@@ -8,11 +8,13 @@ from src.app.database import Base
 
 
 def generate_team_code(length: int = 6) -> str:
+    """Автоматическая генерация случайного кода команды"""
     alphabet = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 class Team(Base):
+    """Модель для создания команд"""
     __tablename__ = 'teams'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

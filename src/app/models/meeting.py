@@ -8,6 +8,7 @@ from src.app.models.meeting_participants import MeetingParticipant
 
 
 class Meeting(Base):
+    """Модель для организации встреч"""
     __tablename__ = 'meetings'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

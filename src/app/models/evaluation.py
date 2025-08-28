@@ -8,6 +8,7 @@ from src.app.database import Base
 
 
 class EvaluationGrade(IntEnum):
+    """Варианты оценок"""
     ONE = 1
     TWO = 2
     THREE = 3
@@ -16,6 +17,7 @@ class EvaluationGrade(IntEnum):
 
 
 class Evaluation(Base):
+    """Модель для оценок задач"""
     __tablename__ = 'evaluations'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
