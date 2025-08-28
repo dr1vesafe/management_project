@@ -1,4 +1,5 @@
 import os
+from typing import Any, Dict
 
 from dotenv import load_dotenv
 from fastapi_users import BaseUserManager, schemas, models
@@ -56,6 +57,51 @@ class UserManager(BaseUserManager[User, int]):
         created_user = await self.user_db.create(user_dict)
         await self.on_after_register(created_user, request)
         return created_user
+    
+    async def update(
+        self,
+        user_update: schemas.UU,
+        user: models.UP,
+        safe: bool = False,
+        request: Request | None = None,
+    ) -> models.UP:
+        """Переопределение метода update, необходимое из-за несовместимости версий"""
+        update_dict: Dict[str, Any] = {}
+        
+        if hasattr(user_update, 'email') and user_update.email is not None:
+            update_dict["email"] = user_update.email
+        
+        if hasattr(user_update, 'password') and user_update.password is not None:
+            update_dict["hashed_password"] = self.password_helper.hash(user_update.password)
+        
+        if hasattr(user_update, 'first_name') and user_update.first_name is not None:
+            update_dict["first_name"] = user_update.first_name
+        
+        if hasattr(user_update, 'last_name') and user_update.last_name is not None:
+            update_dict["last_name"] = user_update.last_name
+        
+        if hasattr(user_update, 'role') and user_update.role is not None:
+            update_dict["role"] = user_update.role
+        
+        if hasattr(user_update, 'team_id') and user_update.team_id is not None:
+            update_dict["team_id"] = user_update.team_id
+        
+        if not safe:
+            if hasattr(user_update, 'is_superuser') and user_update.is_superuser is not None:
+                update_dict["is_superuser"] = user_update.is_superuser
+            
+            if hasattr(user_update, 'is_active') and user_update.is_active is not None:
+                update_dict["is_active"] = user_update.is_active
+        
+        if update_dict:
+            updated_user = await self.user_db.update(user, update_dict)
+            await self.on_after_update(updated_user, update_dict, request)
+            return updated_user
+        
+        return user
+    
+    def parse_id(self, id: str) -> int:
+        return int(id)
     
     async def on_after_login(self, user: User, request: Request | None = None, response = None):
         print(f'Пользователь {user.id} вошел в аккаунт')
