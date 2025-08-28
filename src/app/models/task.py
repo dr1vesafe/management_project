@@ -24,11 +24,11 @@ class Task(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     deadline_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    performer_id: Mapped[int | None] = mapped_column(ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
-    performer: Mapped['User'] = relationship('User', backref='tasks')
+    performer_id: Mapped[int | None] = mapped_column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    performer = relationship('User', backref='tasks')
 
-    team_id: Mapped[int] = mapped_column(ForeignKey('teams.id', ondelete='CASCADE'), nullable=False)
-    team: Mapped['Team'] = relationship('Team', backref='tasks')
+    team_id: Mapped[int] = mapped_column(Integer, ForeignKey('teams.id', ondelete='CASCADE'), nullable=False)
+    team = relationship('Team', backref='tasks')
 
     def __repr__(self) -> str:
         return f'<Task id={self.id} title={self.title} status={self.status}>'

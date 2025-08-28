@@ -26,11 +26,13 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(SQLEnum(UserRole), default=UserRole.user, nullable=False)
 
     team_id: Mapped[int] = mapped_column(Integer, ForeignKey('teams.id', ondelete='SET NULL'), nullable=True)
-    team: Mapped['Team'] = relationship('Team', back_populates='members')
+    team = relationship('Team', back_populates='members')
 
-    meetings: Mapped[list['MeetingParticipant']] = relationship(
-        'MeetingParticipant', back_populates='user', cascade='all, delete-orphan'
-    )
+    meetings = relationship('MeetingParticipant', back_populates='user', cascade='all, delete-orphan')
 
+    given_evaluations = relationship('Evaluation', back_populates='manager', foreign_keys='Evaluation.manager_id')
+
+    received_evaluations = relationship('Evaluation', back_populates='user', foreign_keys='Evaluation.user_id')
+    
     def __repr__(self):
         return f'<Use id={self.id} email={self.email} role={self.role}>'

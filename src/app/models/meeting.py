@@ -17,7 +17,7 @@ class Meeting(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     team_id: Mapped[int] = mapped_column(ForeignKey('teams.id', ondelete='CASCADE'), nullable=False)
-    team: Mapped['Team'] = relationship('Team', backref='meetings')
+    team = relationship('Team', backref='meetings')
 
     participants: Mapped[list[MeetingParticipant]] = relationship(
         'MeetingParticipant', back_populates='meeting', cascade='all, delete-orphan'
