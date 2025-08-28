@@ -30,9 +30,11 @@ class User(Base):
 
     meetings = relationship('MeetingParticipant', back_populates='user', cascade='all, delete-orphan')
 
+    organized_meetings = relationship('Meeting', back_populates='organizer', cascade='all, delete-orphan')
+
     given_evaluations = relationship('Evaluation', back_populates='manager', foreign_keys='Evaluation.manager_id')
 
     received_evaluations = relationship('Evaluation', back_populates='user', foreign_keys='Evaluation.user_id')
-    
+
     def __repr__(self):
         return f'<Use id={self.id} email={self.email} role={self.role}>'

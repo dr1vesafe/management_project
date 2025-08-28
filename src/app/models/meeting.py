@@ -16,6 +16,9 @@ class Meeting(Base):
     scheduled_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    organizer_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    organizer = relationship('User', back_populates='organized_meetings')
+    
     team_id: Mapped[int] = mapped_column(ForeignKey('teams.id', ondelete='CASCADE'), nullable=False)
     team = relationship('Team', backref='meetings')
 
