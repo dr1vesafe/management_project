@@ -35,3 +35,8 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = None
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = None
+
+
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str

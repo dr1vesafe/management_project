@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from src.app.database import get_db
 from src.app.models.user import User, UserRole
-from src.app.schemas.user import UserRead, UserUpdate
+from src.app.schemas.user import UserRead, UserUpdate, ChangePassword
 from src.app.auth.dependencies import get_current_user, require_role
+from src.app.auth.user_manager import get_user_manager, UserManager
 
 router = APIRouter(prefix='/users', tags=['users'])
 
@@ -177,3 +179,36 @@ async def update_user_role(
     await db.refresh(user)
 
     return {'msg': f'Роль пользователя {user.id} изменена на {new_role.value}'}
+
+
+@router.post('/change-password')
+async def change_password(
+    data: ChangePassword,
+    user: User = Depends(get_current_user),
+    user_manager: UserManager = Depends(get_user_manager)
+):
+    """
+    Изменить пароль текущего пользователя
+    (доступно любому авторизованному пользователю)
+    """
+    credentials = OAuth2PasswordRequestForm(
+        username=user.email,
+        password=data.old_password
+    )
+
+    authenticated_user = await user_manager.authenticate(credentials)
+
+    if not authenticated_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Неверно введен старый пароль'
+        )
+    
+    hashed_new_password = user_manager.password_helper.hash(data.new_password)
+
+    update_dict = {
+        'hashed_password': hashed_new_password
+    }
+
+    await user_manager.user_db.update(user, update_dict)
+    return {'detail': 'Пароль успешно изменен'}
