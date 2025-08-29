@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 
 from .config import settings
 from src.app.auth.auth import fastapi_users, auth_backend
 from src.app.schemas.user import UserRead, UserCreate
+
 
 def create_application() -> FastAPI:
     app = FastAPI(

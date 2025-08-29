@@ -11,7 +11,6 @@ class UserBase(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
-    role: UserRole = UserRole.user
     is_active: bool = True
 
 
@@ -24,6 +23,7 @@ class UserRead(UserBase):
     """Схема для получения данных пользователя"""
     id: int
     team_id: Optional[int] = None
+    role: UserRole
 
     class Config:
         from_attributes = True
@@ -34,5 +34,4 @@ class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: Optional[EmailStr] = None
-    role: Optional[UserRole] = None
     is_active: Optional[bool] = None
