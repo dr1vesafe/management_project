@@ -88,7 +88,7 @@ async def get_user_by_id(
     _: User = Depends(require_role('admin')),
 ):
     """
-    Получение пользователя по id
+    Получить пользователя по id
     (доступно только админам)
     """
     result = await db.execute(select(User).where(User.id == user_id))
@@ -100,3 +100,54 @@ async def get_user_by_id(
         )
     
     return user
+
+
+@router.patch('/{user_id}', response_model=UserRead)
+async def update_user_by_id(
+    user_id: int,
+    data: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role('admin'))
+):
+    """
+    Изменить пользователя с указанным id
+    (доступно только админам)
+    """
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Пользователь не найден'
+        )
+    
+    for field, value in data.dict(exclude_unset=True).items():
+        setattr(user, field, value)
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user_by_id(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role('admin'))
+):
+    """
+    Удалить пользователя с указанным id
+    (доступно только админам)
+    """
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Пользователь не найден'
+        )
+
+    await db.delete(user)
+    await db.commit()
+    return None
