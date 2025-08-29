@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Depends
 
 from .config import settings
-from src.app.auth.auth import fastapi_users, auth_backend
+from src.app.auth.auth import fastapi_users
 from src.app.schemas.user import UserRead, UserCreate
-from src.app.routers import users
+from src.app.routers import users, auth
 
 
 def create_application() -> FastAPI:
@@ -18,13 +18,8 @@ def create_application() -> FastAPI:
         tags=['auth']
     )
 
-    app.include_router(
-        fastapi_users.get_auth_router(auth_backend),
-        prefix='/auth/jwt',
-        tags=['auth']
-    )
-
     app.include_router(users.router)
+    app.include_router(auth.router)
 
     return app
 
