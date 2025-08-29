@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from src.app.database import get_db
-from src.app.models.user import User
+from src.app.models.user import User, UserRole
 from src.app.schemas.user import UserRead, UserUpdate
 from src.app.auth.dependencies import get_current_user, require_role
 
@@ -65,7 +65,7 @@ async def delete_current_user(
     
     await db.delete(user)
     await db.commit()
-    return None
+    return {'msg': 'Пользователь удален'}
 
 
 @router.get('/', response_model=list[UserRead])
@@ -150,4 +150,30 @@ async def delete_user_by_id(
 
     await db.delete(user)
     await db.commit()
-    return None
+    return {'msg': f'Пользователь {user_id} удален'}
+
+
+@router.patch('/{user_id}/role')
+async def update_user_role(
+    user_id: int,
+    new_role: UserRole,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role('admin'))
+):
+    """
+    Изменить роль пользователя с указанным id
+    (доступно только админам)
+    """
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Пользователь не найден'
+        )
+    
+    user.role = new_role.value
+    await db.commit()
+    await db.refresh(user)
+
+    return {'msg': f'Роль пользователя {user.id} изменена на {new_role.value}'}
