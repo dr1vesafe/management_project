@@ -66,3 +66,37 @@ async def delete_current_user(
     await db.delete(user)
     await db.commit()
     return None
+
+
+@router.get('/', response_model=list[UserRead])
+async def get_all_users(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role('admin'))
+):
+    """
+    Получить всех пользователей
+    (доступно только админам)
+    """
+    result = await db.execute(select(User))
+    return result.scalars().all()
+
+
+@router.get('/{user_id}', response_model=UserRead)
+async def get_user_by_id(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role('admin')),
+):
+    """
+    Получение пользователя по id
+    (доступно только админам)
+    """
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Пользователь не найден'
+        )
+    
+    return user
