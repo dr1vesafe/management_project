@@ -4,11 +4,10 @@ from typing import Any, Dict
 from dotenv import load_dotenv
 from fastapi_users import BaseUserManager, schemas, models
 from fastapi_users.db import SQLAlchemyUserDatabase
-from fastapi import Depends, Request
+from fastapi import Depends, Request, HTTPException, status
 
 from src.app.database import async_session
 from src.app.models.user import User
-
 
 load_dotenv()
 
@@ -33,7 +32,10 @@ class UserManager(BaseUserManager[User, int]):
 
         existing_user = await self.user_db.get_by_email(user_create.email)
         if existing_user is not None:
-            raise self.user_db.user_exists_exception()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Пользователь с таким email уже существует'
+            )
     
         user_dict = {
             "email": user_create.email,

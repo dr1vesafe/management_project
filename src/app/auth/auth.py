@@ -4,7 +4,6 @@ from fastapi_users.authentication import AuthenticationBackend, BearerTransport,
 from src.app.auth.user_manager import get_user_manager, SECRET
 from src.app.models.user import User
 
-
 bearer_transport = BearerTransport(tokenUrl='auth/jwt/login')
 
 
