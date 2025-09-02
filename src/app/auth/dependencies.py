@@ -32,10 +32,10 @@ async def get_current_user(
         )
     
 
-def require_role(role: str):
+def require_role(*roles: str):
     """Проверка роли пользователя"""
     async def dependency(user: User = Depends(get_current_user)):
-        if user.role != role:
+        if user.role not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail='Недостаточно прав'

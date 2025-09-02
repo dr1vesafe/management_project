@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.app.schemas.task import TaskRead, TaskCreate
+from src.app.schemas.task import TaskRead, TaskCreate, TaskUpdate
 from src.app.database import get_db
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.models.user import User
@@ -16,9 +16,12 @@ router = APIRouter(prefix='/tasks', tags=['tasks'])
 async def create_task(
     task_data: TaskCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role('manager', 'admin')),
 ):
-    """Создание задачи"""
+    """
+    Создание задачи
+    (доступно только менеджерам и админам)
+    """
     if task_data.team_id != user.team_id and user.role != 'admin':
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
@@ -70,7 +73,9 @@ async def get_task(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Получить задачу по id"""
     task = await task_crud.get_task(db, task_id)
+
     if task.team_id != user.team_id and user.role != 'admin':
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
@@ -84,3 +89,31 @@ async def get_task(
         )
     
     return task
+
+
+@router.put('/{task_id}', response_model=TaskRead)
+async def update_task(
+    task_id: int,
+    task_data: TaskUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin')),
+):
+    """
+    Изменить задачу
+    (доступно только менеджерам и админам)
+    """
+    task = await task_crud.get_task(db, task_id)
+
+    if task.team_id != user.team_id and user.role != 'admin':
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = 'Недостаточно прав'
+        )
+    
+    if not task:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = 'Задача не найдена'
+        )
+    
+    return await task_crud.update_task(db, task=task, task_data=task_data)
