@@ -99,7 +99,7 @@ async def update_task(
     user: User = Depends(require_role('manager', 'admin')),
 ):
     """
-    Изменить задачу
+    Изменить задачу по id
     (доступно только менеджерам и админам)
     """
     task = await task_crud.get_task(db, task_id)
@@ -117,3 +117,31 @@ async def update_task(
         )
     
     return await task_crud.update_task(db, task=task, task_data=task_data)
+
+
+@router.delete('/{task_id}')
+async def delete_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin')),
+):
+    """
+    Удалить задачу по id
+    (доступно только менеджерам и админам)
+    """
+    task = await task_crud.get_task(db, task_id)
+
+    if task.team_id != user.team_id and user.role != 'admin':
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = 'Недостаточно прав'
+        )
+    
+    if not task:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = 'Задача не найдена'
+        )
+    
+    await task_crud.delete_task(db, task)
+    return {'detail': f'Задача {task_id} удалена'}
