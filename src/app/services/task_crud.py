@@ -20,6 +20,12 @@ async def get_task(db: AsyncSession, task_id: int) -> Task | None:
     return result.scalars().first()
 
 
+async def get_tasks(db: AsyncSession) -> list[Task]:
+    """Получить все задачи"""
+    result = await db.execute(select(Task))
+    return result.scalars().all()
+
+
 async def get_tasks_by_team(db: AsyncSession, team_id: int) -> list[Task]:
     """Получить список задач для команды"""
     result = await db.execute(select(Task).where(Task.team_id == team_id))
