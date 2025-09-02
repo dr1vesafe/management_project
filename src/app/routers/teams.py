@@ -100,3 +100,19 @@ async def update_team(
     team = await check_team(db, team_id, user)
 
     return await team_crud.update_team(db, team, team_data)
+
+
+@router.delete('/{team_id}')
+async def delete_team(
+    team_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """
+    Удаление команды
+    (доступно только менеджерам и админам)
+    """
+    team = await check_team(db, team_id, user)
+
+    await team_crud.delete_team(db, team)
+    return {'detail': f'Команда {team_id} удалена'}
