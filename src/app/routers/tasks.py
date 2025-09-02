@@ -12,6 +12,26 @@ from src.app.services import task_crud
 router = APIRouter(prefix='/tasks', tags=['tasks'])
 
 
+async def check_task(
+        db: AsyncSession,
+        task_id: int,
+        user: User
+):
+    task = await task_crud.get_task(db, task_id)
+
+    if task.team_id != user.team_id and user.role != 'admin':
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = 'Недостаточно прав'
+        )
+    
+    if not task:
+        raise HTTPException(
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = 'Задача не найдена'
+        )
+
+
 @router.post('/', response_model=TaskRead)
 async def create_task(
     task_data: TaskCreate,
@@ -74,19 +94,7 @@ async def get_task(
     user: User = Depends(get_current_user),
 ):
     """Получить задачу по id"""
-    task = await task_crud.get_task(db, task_id)
-
-    if task.team_id != user.team_id and user.role != 'admin':
-        raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN,
-            detail = 'Недостаточно прав'
-        )
-    
-    if not task:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = 'Задача не найдена'
-        )
+    task = await check_task(db, task_id, user)
     
     return task
 
@@ -102,19 +110,7 @@ async def update_task(
     Изменить задачу по id
     (доступно только менеджерам и админам)
     """
-    task = await task_crud.get_task(db, task_id)
-
-    if task.team_id != user.team_id and user.role != 'admin':
-        raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN,
-            detail = 'Недостаточно прав'
-        )
-    
-    if not task:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = 'Задача не найдена'
-        )
+    task = await check_task(db, task_id, user)
     
     return await task_crud.update_task(db, task=task, task_data=task_data)
 
@@ -129,19 +125,7 @@ async def delete_task(
     Удалить задачу по id
     (доступно только менеджерам и админам)
     """
-    task = await task_crud.get_task(db, task_id)
-
-    if task.team_id != user.team_id and user.role != 'admin':
-        raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN,
-            detail = 'Недостаточно прав'
-        )
-    
-    if not task:
-        raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = 'Задача не найдена'
-        )
+    task = await check_task(db, task_id, user)
     
     await task_crud.delete_task(db, task)
     return {'detail': f'Задача {task_id} удалена'}
