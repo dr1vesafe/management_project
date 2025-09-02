@@ -18,7 +18,7 @@ async def get_current_user(
         user = await strategy.read_token(token, user_manager)
         if not user:
             raise HTTPException(
-                status_code=401,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='Неверный access токен'
             )
         
@@ -27,7 +27,7 @@ async def get_current_user(
     except Exception as e:
         print(f'Ошибка аутентификации: {e}')
         raise HTTPException(
-                status_code=401,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='Неверный access токен'
         )
     
