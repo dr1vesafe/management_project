@@ -10,11 +10,11 @@ refresh_transport = BearerTransport(tokenUrl='auth/jwt/refresh')
 
 
 def get_access_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+    return JWTStrategy(secret=SECRET, lifetime_seconds=3600) # 1 час
 
 
 def get_refresh_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET + '_REFRESH', lifetime_seconds=2592000)
+    return JWTStrategy(secret=SECRET + '_REFRESH', lifetime_seconds=2592000) # 30 дней
 
 
 access_backend = AuthenticationBackend(

@@ -12,6 +12,30 @@ from src.app.services import evaluation_crud
 router = APIRouter(prefix='/evaluations', tags=['evaluations'])
 
 
+async def check_evaluation(
+        db: AsyncSession,
+        evaluation_id: int,
+        user: User
+):
+    """Общая функция для проверки оценки"""
+    evaluation = await evaluation_crud.get_evaluation(db, evaluation_id)
+    if not evaluation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Оценка не найдена'
+        )
+    
+    evaluation_task = await db.execute(select(Task).where(Task.id == evaluation.task_id))
+    task = evaluation_task.scalars().first()
+    if user.team_id != task.team_id and user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+    
+    return evaluation
+
+
 @router.post('/', response_model=EvaluationRead)
 async def create_evaluation(
     evaluation_data: EvaluationCreate,
@@ -55,4 +79,27 @@ async def create_evaluation(
     evaluation = await evaluation_crud.create_evaluation(db, evaluation_data)
     db.commit()
     db.refresh(evaluation)
+    return evaluation
+
+
+@router.get('/', response_model=list[EvaluationRead])
+async def get_all_evaluations(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role('admin'))
+):
+    """
+    Получение всех оценок
+    (доступно только админам)
+    """
+    return await evaluation_crud.get_all_evaluations(db)
+
+
+@router.get('/{evaluation_id}', response_model=EvaluationRead)
+async def get_evaluation_by_id(
+    evaluation_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    evaluation = await check_evaluation(db, evaluation_id, user)
+
     return evaluation
