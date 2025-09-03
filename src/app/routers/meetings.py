@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,7 +53,7 @@ async def create_meeting(
     return await meeting_crud.create_meeting(db, meeting_data)
 
 
-@router.get('/', response_model=list[MeetingRead])
+@router.get('/all', response_model=list[MeetingRead])
 async def get_all_meetings(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role('admin'))
@@ -73,6 +75,30 @@ async def get_meeting_by_id(
     meeting = await check_meeting(db, meeting_id, user)
 
     return meeting
+
+
+@router.get('/', response_model=list[MeetingRead])
+async def get_tasks_by_team(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    team_id: Optional[int] = None,
+):
+    """Получить встречи для команды"""
+    if not team_id:
+        if not user.team_id:
+            raise HTTPException(
+                status_code = status.HTTP_400_BAD_REQUEST,
+                detail = 'Пользователь должен состоять в команде'
+            )
+        return await meeting_crud.get_meetings_by_team(db, user.team_id)
+    
+    if user.team_id != team_id and user.role != 'admin':
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = 'Недостаточно прав'
+        )
+    
+    return await meeting_crud.get_meetings_by_team(db, team_id)
 
 
 @router.put('/{meeting_id}', response_model=MeetingRead)
