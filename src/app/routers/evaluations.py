@@ -134,4 +134,5 @@ async def delete_evaluation(
     """
     evaluation = await check_evaluation(db, evaluation_id, user)
     
-    return await evaluation_crud.delete_evaluation(db, evaluation)
+    await evaluation_crud.delete_evaluation(db, evaluation)
+    return {'detail': f'Оценка {evaluation_id} удалена'}

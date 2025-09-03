@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.app.schemas.meeting import MeetingRead, MeetingCreate
+from src.app.schemas.meeting import MeetingRead, MeetingCreate, MeetingUpdate
 from src.app.database import get_db
 from src.app.services import meeting_crud
 from src.app.auth.dependencies import get_current_user, require_role
@@ -73,3 +73,35 @@ async def get_meeting_by_id(
     meeting = await check_meeting(db, meeting_id, user)
 
     return meeting
+
+
+@router.put('/{meeting_id}', response_model=MeetingRead)
+async def update_meeting(
+    meeting_id: int,
+    meeting_data: MeetingUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin')),
+):
+    """
+    Изменить встречу по id
+    (доступно только менеджерам и админам)
+    """
+    meeting = await check_meeting(db, meeting_id, user)
+    
+    return await meeting_crud.update_meeting(db, meeting, meeting_data)
+
+
+@router.delete('/{meeting_id}')
+async def delete_meeting(
+    meeting_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin')),
+):
+    """
+    Удалить встречу по id
+    (доступно только менеджерам и админам)
+    """
+    meeting = await check_meeting(db, meeting_id, user)
+    
+    await meeting_crud.delete_meeting(db, meeting)
+    return {'detail': f'Встреча {meeting_id} удалена'}
