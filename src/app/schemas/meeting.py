@@ -17,8 +17,6 @@ class MeetingParticipantCreate(MeetingParticipantBase):
 class MeetingParticipantRead(MeetingParticipantBase):
     """Схема для получения данных участника встречи"""
     id: int
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -31,11 +29,12 @@ class MeetingBase(BaseModel):
     scheduled_at: datetime
     organizer_id: int
     team_id: int
+    participants: Optional[List[MeetingParticipantRead]] = []
 
 
 class MeetingCreate(MeetingBase):
     """Схема для создания встречи"""
-    participants: Optional[List[MeetingParticipantCreate]] = []
+    participants_id: Optional[List[int]] = []
 
 
 class MeetingRead(MeetingBase):

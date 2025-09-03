@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends
 from .config import settings
 from src.app.auth.auth import fastapi_users
 from src.app.schemas.user import UserRead, UserCreate
-from src.app.routers import users, auth, tasks, teams, evaluations
+from src.app.routers import users, auth, tasks, teams, evaluations, meetings
 
 
 def create_application() -> FastAPI:
@@ -23,6 +23,7 @@ def create_application() -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(teams.router)
     app.include_router(evaluations.router)
+    app.include_router(meetings.router)
 
     return app
 

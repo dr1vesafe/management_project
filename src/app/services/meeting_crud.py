@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.app.schemas.meeting import MeetingCreate, MeetingUpdate
 from src.app.models.meeting import Meeting
@@ -8,23 +9,30 @@ from src.app.models.meeting_participants import MeetingParticipant
 
 async def create_meeting(db: AsyncSession, meeting_data: MeetingCreate) -> Meeting:
     """Создать встречу"""
-    participants_data = meeting_data.participants or []
-    meeting_dict = meeting_data.dict(exclude={'participants'})
+    participants_id = meeting_data.participants_id or []
+    meeting_dict = meeting_data.dict(exclude={'participants_id'})
     meeting = Meeting(**meeting_dict)
 
     db.add(meeting)
     await db.commit()
     await db.refresh(meeting)
 
-    for participant in participants_data:
+    for participant_id in participants_id:
         participant_obj = MeetingParticipant(
             meeting_id=meeting.id,
-            user_id=participant.user_id
+            user_id=participant_id
         )
         db.add(participant_obj)
 
     await db.commit()
-    await db.refresh(meeting)
+
+    result = await db.execute(
+        select(Meeting)
+        .options(selectinload(Meeting.participants))
+        .where(Meeting.id == meeting.id)
+    )
+    meeting = result.scalar_one()
+
     return meeting
 
 
