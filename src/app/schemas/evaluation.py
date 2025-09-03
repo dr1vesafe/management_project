@@ -10,8 +10,8 @@ class EvaluationBase(BaseModel):
     """Базовая схема оценок"""
     grade: EvaluationGrade
     comment: str | None = None
-    manager_id: int
-    user_id: int
+    manager_id: int | None = None
+    user_id: int | None = None
     task_id: int
 
 
