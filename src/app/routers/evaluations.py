@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -104,6 +106,24 @@ async def get_evaluation_by_id(
     evaluation = await check_evaluation(db, evaluation_id, user)
 
     return evaluation
+
+
+@router.get('/task/{task_id}', response_model=list[EvaluationRead])
+async def get_tasks_by_team(
+    task_id: int = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Получить оценки для задачи"""
+    result = await db.execute(select(Task).where(Task.id == task_id))
+    task = result.scalars().first()
+    if user.team_id != task.team_id and user.role != 'admin':
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = 'Недостаточно прав'
+        )
+    
+    return await evaluation_crud.get_evaluations_by_task(db, task_id)
 
 
 @router.put('/{evaluation_id}', response_model=EvaluationRead)
