@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.app.schemas.evaluation import EvaluationRead, EvaluationCreate
+from src.app.schemas.evaluation import EvaluationRead, EvaluationCreate, EvaluationUpdate
 from src.app.database import get_db
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.models.user import User
@@ -100,6 +100,38 @@ async def get_evaluation_by_id(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    """Получение оценки по id"""
     evaluation = await check_evaluation(db, evaluation_id, user)
 
     return evaluation
+
+
+@router.put('/{evaluation_id}', response_model=EvaluationRead)
+async def update_evaluation(
+    evaluation_id: int,
+    evaluation_data: EvaluationUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """
+    Изменение оценки
+    (доступно только менеджерам и админам)
+    """
+    evaluation = await check_evaluation(db, evaluation_id, user)
+    
+    return await evaluation_crud.update_evaluation(db, evaluation, evaluation_data)
+
+
+@router.delete('/{evaluation_id}')
+async def delete_evaluation(
+    evaluation_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """
+    Удаление оценки
+    (доступно только менеджерам и админам)
+    """
+    evaluation = await check_evaluation(db, evaluation_id, user)
+    
+    return await evaluation_crud.delete_evaluation(db, evaluation)
