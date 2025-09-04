@@ -25,3 +25,8 @@ class TeamRead(TeamBase):
 class TeamUpdate(BaseModel):
     """Схема для обновления данных команды"""
     name: Optional[str] = None
+
+
+class JoinTeamRequest(BaseModel):
+    """Схема для вступления в команду по коду"""
+    team_code: str

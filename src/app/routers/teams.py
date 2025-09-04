@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.app.schemas.team import TeamRead, TeamCreate, TeamUpdate
+from src.app.schemas.team import TeamRead, TeamCreate, TeamUpdate, JoinTeamRequest
 from src.app.database import get_db
 from src.app.models.user import User
 from src.app.models.team import Team
@@ -91,6 +91,36 @@ async def get_all_teams(
 
     result = await db.execute(stmt)
     return result.scalars().all()
+
+
+@router.post('/join')
+async def join_team_by_code(
+    body: JoinTeamRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Вступить в команду по коду"""
+    if current_user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Вы уже состоите в команде'
+        )
+    
+    result = await db.execute(select(Team).where(Team.code == body.team_code))
+    team = result.scalars().first()
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Команда с таким кодом не найдена'
+        )
+    
+    user = await db.merge(current_user)
+    user.team_id = team.id
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return {'detail': f'Вы успешно присоединились к команде {team.name}'}
 
 
 @router.get('/{team_id}', response_model=TeamRead)
