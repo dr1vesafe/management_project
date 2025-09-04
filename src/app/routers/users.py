@@ -77,7 +77,7 @@ async def get_all_users(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role('admin')),
     email: Optional[str] = Query(None, description="Фильтрация по email"),
-    role: Optional[str] = Query(None, description='Филтрация по роли'),
+    role: Optional[UserRole] = Query(None, description='Филтрация по роли'),
     team_id: Optional[int] = Query(None, description='Фильтрация по команде'),
     is_active: Optional[bool] = Query(None, description='Фильтрация по статусу'),
     limit: int = Query(10, ge=1, le=100, description='Количество записей'),
@@ -91,16 +91,8 @@ async def get_all_users(
 
     if email:
         stmt = stmt.where(User.email.ilike(f'%{email}'))
-    
     if role:
-        if role in UserRole:
-            stmt = stmt.where(User.role == role)
-        else: 
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Роль должна быть user, manager или admin'
-            )
-    
+        stmt = stmt.where(User.role == role)
     if team_id is not None:
         stmt = stmt.where(User.team_id == team_id)
     if is_active is not None:

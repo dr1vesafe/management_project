@@ -1,12 +1,15 @@
 from typing import Optional
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from src.app.schemas.task import TaskRead, TaskCreate, TaskUpdate
 from src.app.database import get_db
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.models.user import User
+from src.app.models.task import TaskStatus, Task
 from src.app.services import task_crud
 
 router = APIRouter(prefix='/tasks', tags=['tasks'])
@@ -97,13 +100,35 @@ async def get_tasks_by_performer(
 @router.get('/all', response_model=list[TaskRead])
 async def get_all_tasks(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role('admin'))
+    _: User = Depends(require_role('admin')),
+    status: Optional[TaskStatus] = Query(None, description='Фильтраци по статусу задачи'),
+    performer_id: Optional[int] = Query(None, description='Фильтрация по пользователю'),
+    team_id: Optional[int] = Query(None, description='Фильрация по команде'),
+    deadline_before: Optional[datetime] = Query(None, description='Дедлайн до даты'),
+    deadline_after: Optional[datetime] = Query(None, description='Дедлайн после даты'),
+    limit: int = Query(10, ge=1, le=100, description='Количество записей'),
+    offset: int = Query(0, ge=1, description='Смещение'),
 ):
     """
     Получить список всех задач
     (доступно только админам)
     """
-    return await task_crud.get_tasks(db)
+    stmt = select(Task)
+
+    if status:
+        stmt = stmt.where(Task.status == status)
+    if performer_id:
+        stmt = stmt.where(Task.performer_id == performer_id)
+    if team_id:
+        stmt = stmt.where(Task.team_id == team_id)
+    if deadline_before:
+        stmt = stmt.where(Task.deadline_date <= deadline_before)
+    if deadline_after:
+        stmt = stmt.where(Task.deadline_date >= deadline_after)
+
+    stmt = stmt.limit(limit).offset(offset)
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 @router.get('/{task_id}', response_model=TaskRead)
