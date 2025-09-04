@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -73,13 +75,40 @@ async def delete_current_user(
 @router.get('/', response_model=list[UserRead])
 async def get_all_users(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role('admin'))
+    _: User = Depends(require_role('admin')),
+    email: Optional[str] = Query(None, description="Фильтрация по email"),
+    role: Optional[str] = Query(None, description='Филтрация по роли'),
+    team_id: Optional[int] = Query(None, description='Фильтрация по команде'),
+    is_active: Optional[bool] = Query(None, description='Фильтрация по статусу'),
+    limit: int = Query(10, ge=1, le=100, description='Количество записей'),
+    offset: int = Query(0, ge=0, description='Смещение')
 ):
     """
     Получить всех пользователей
     (доступно только админам)
     """
-    result = await db.execute(select(User))
+    stmt = select(User)
+
+    if email:
+        stmt = stmt.where(User.email.ilike(f'%{email}'))
+    
+    if role:
+        if role in UserRole:
+            stmt = stmt.where(User.role == role)
+        else: 
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Роль должна быть user, manager или admin'
+            )
+    
+    if team_id is not None:
+        stmt = stmt.where(User.team_id == team_id)
+    if is_active is not None:
+        stmt = stmt.where(User.is_active == is_active)
+
+    stmt = stmt.limit(limit).offset(offset)
+
+    result = await db.execute(stmt)
     return result.scalars().all()
 
 
