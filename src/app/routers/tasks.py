@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -10,7 +10,7 @@ from src.app.database import get_db
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.models.user import User
 from src.app.models.task import TaskStatus, Task
-from src.app.services import task_crud
+from src.app.services import task_crud, task_service
 
 router = APIRouter(prefix='/tasks', tags=['tasks'])
 
@@ -33,6 +33,8 @@ async def check_task(
             status_code = status.HTTP_404_NOT_FOUND,
             detail = 'Задача не найдена'
         )
+    
+    return task
 
 
 @router.post('/', response_model=TaskRead)
@@ -173,3 +175,17 @@ async def delete_task(
     
     await task_crud.delete_task(db, task)
     return {'detail': f'Задача {task_id} удалена'}
+
+
+@router.patch('/{task_id}/status', response_model=TaskRead)
+async def update_task_status(
+    task_id: int,
+    new_status: TaskStatus = Body(..., embed=True),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """Изменить статус задачи"""
+    task = await check_task(db, task_id, user)
+
+    task = await task_service.change_task_status(db, task, new_status, user)
+    return task
