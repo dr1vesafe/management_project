@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -7,6 +10,7 @@ from src.app.database import get_db
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.models.user import User
 from src.app.models.task import Task
+from src.app.models.evaluation import Evaluation, EvaluationGrade
 from src.app.services import evaluation_crud
 
 router = APIRouter(prefix='/evaluations', tags=['evaluations'])
@@ -85,13 +89,38 @@ async def create_evaluation(
 @router.get('/', response_model=list[EvaluationRead])
 async def get_all_evaluations(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role('admin'))
+    _: User = Depends(require_role('admin')),
+    task_id: Optional[int] = Query(None, description='Фильтрация по задаче'),
+    user_id: Optional[int] = Query(None, description='Фильтрация по пользователю'),
+    manager_id: Optional[int] = Query(None, description='Фильтрация по менеджеру'),
+    grade: Optional[EvaluationGrade] = Query(None, description='Фильтрация по оценке'),
+    created_before: Optional[datetime] = Query(None, description='Оценки до даты'),
+    created_after: Optional[datetime] = Query(None, description='Оценки после даты'),
+    limit: int = Query(10, ge=1, le=100, description='Количество записей'),
+    offset: int = Query(0, ge=0, description='Смещение'),
 ):
     """
     Получение всех оценок
     (доступно только админам)
     """
-    return await evaluation_crud.get_all_evaluations(db)
+    stmt = select(Evaluation)
+
+    if task_id:
+        stmt = stmt.where(Evaluation.task_id == task_id)
+    if user_id:
+        stmt = stmt.where(Evaluation.user_id == user_id)
+    if manager_id:
+        stmt = stmt.where(Evaluation.manager_id == manager_id)
+    if grade:
+        stmt = stmt.where(Evaluation.grade == grade)
+    if created_before:
+        stmt = stmt.where(Evaluation.created_at <= created_before)
+    if created_after:
+        stmt = stmt.where(Evaluation.created_at >= created_after)
+
+    stmt = stmt.limit(limit).offset(offset)
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 @router.get('/{evaluation_id}', response_model=EvaluationRead)
@@ -111,6 +140,8 @@ async def get_evaluations_by_task(
     task_id: int,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
 ):
     """Получить оценки для задачи"""
     result = await db.execute(select(Task).where(Task.id == task_id))
@@ -121,7 +152,9 @@ async def get_evaluations_by_task(
             detail = 'Недостаточно прав'
         )
     
-    return await evaluation_crud.get_evaluations_by_task(db, task_id)
+    stmt = select(Evaluation).where(Evaluation.task_id == task_id).limit(limit).offset(offset)
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 @router.put('/{evaluation_id}', response_model=EvaluationRead)

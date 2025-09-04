@@ -20,18 +20,6 @@ async def get_evaluation(db: AsyncSession, evaluation_id: int) -> Evaluation | N
     return result.scalars().first()
 
 
-async def get_all_evaluations(db: AsyncSession) -> list[Evaluation]:
-    """Получить список всех оценок"""
-    result = await db.execute(select(Evaluation))
-    return result.scalars().all()
-
-
-async def get_evaluations_by_task(db: AsyncSession, task_id: int) -> list[Evaluation]:
-    """Получить список оценок для задачи"""
-    result = await db.execute(select(Evaluation).where(Evaluation.task_id == task_id))
-    return result.scalars().all()
-
-
 async def update_evaluation(
         db: AsyncSession,
         evaluation: Evaluation,
