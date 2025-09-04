@@ -78,7 +78,7 @@ async def get_meeting_by_id(
 
 
 @router.get('/', response_model=list[MeetingRead])
-async def get_tasks_by_team(
+async def get_meetings_by_team(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
     team_id: Optional[int] = None,

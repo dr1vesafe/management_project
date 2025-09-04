@@ -109,7 +109,7 @@ async def get_evaluation_by_id(
 
 
 @router.get('/task/{task_id}', response_model=list[EvaluationRead])
-async def get_tasks_by_team(
+async def get_evaluations_by_task(
     task_id: int = None,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),

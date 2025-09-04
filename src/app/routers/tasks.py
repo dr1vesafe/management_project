@@ -75,6 +75,25 @@ async def get_tasks_by_team(
     return await task_crud.get_tasks_by_team(db, team_id)
 
 
+@router.get('/performer', response_model=list[TaskRead])
+async def get_tasks_by_performer(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    performer_id: Optional[int] = None,
+):
+    """Получить задачи для пользователя"""
+    if not performer_id:
+        return await task_crud.get_tasks_by_team(db, user.id)
+    
+    if user.id != performer_id and user.role != 'admin':
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = 'Недостаточно прав'
+        )
+    
+    return await task_crud.get_tasks_by_performer(db, performer_id)
+
+
 @router.get('/all', response_model=list[TaskRead])
 async def get_all_tasks(
     db: AsyncSession = Depends(get_db),
