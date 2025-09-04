@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.schemas.task import TaskRead, TaskCreate, TaskUpdate
@@ -55,7 +55,7 @@ async def create_task(
 async def get_tasks_by_team(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-    team_id: Optional[int] = None,
+    team_id: Optional[int] = Query(None, description='id команды'),
 ):
     """Получить задачи для команды"""
     if not team_id:
@@ -79,7 +79,7 @@ async def get_tasks_by_team(
 async def get_tasks_by_performer(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-    performer_id: Optional[int] = None,
+    performer_id: Optional[int] = Query(None, description='id пользователя'),
 ):
     """Получить задачи для пользователя"""
     if not performer_id:

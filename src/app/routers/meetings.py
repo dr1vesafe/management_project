@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.schemas.meeting import MeetingRead, MeetingCreate, MeetingUpdate
@@ -81,7 +81,7 @@ async def get_meeting_by_id(
 async def get_meetings_by_team(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-    team_id: Optional[int] = None,
+    team_id: Optional[int] = Query(None, description='id команды'),
 ):
     """Получить встречи для команды"""
     if not team_id:

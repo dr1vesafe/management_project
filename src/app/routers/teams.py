@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from src.app.schemas.team import TeamRead, TeamCreate, TeamUpdate
 from src.app.database import get_db
 from src.app.models.user import User
+from src.app.models.team import Team
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.services import team_crud
 
@@ -66,13 +70,27 @@ async def create_team(
 @router.get('/', response_model=list[TeamRead])
 async def get_all_teams(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role('admin'))
+    _: User = Depends(require_role('admin')),
+    name: Optional[str] = Query(None, description='Фильтрация по названию команды'),
+    code: Optional[str] = Query(None, description='Филтрация по коду команды'),
+    limit: int = Query(10, ge=1, le=100, description='Количество записей'),
+    offset: int = Query(0, ge=0, description='Смещение')
 ):
     """
     Получение списка всех команд
     (доступно только админам)
     """
-    return await team_crud.get_all_team(db)
+    stmt = select(Team)
+
+    if name:
+        stmt = stmt.where(Team.name.ilike(f'%{name}'))
+    if code:
+        stmt = stmt.where(Team.code.ilike(f'%{code}'))
+
+    stmt = stmt.limit(limit).offset(offset)
+
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 @router.get('/{team_id}', response_model=TeamRead)

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -110,7 +108,7 @@ async def get_evaluation_by_id(
 
 @router.get('/task/{task_id}', response_model=list[EvaluationRead])
 async def get_evaluations_by_task(
-    task_id: int = None,
+    task_id: int,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):

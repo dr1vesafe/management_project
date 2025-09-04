@@ -20,12 +20,6 @@ async def get_team(db: AsyncSession, team_id: int) -> Team | None:
     return result.scalars().first()
 
 
-async def get_all_team(db: AsyncSession) -> list[Team]:
-    """Получить список всех команд"""
-    result = await db.execute(select(Team))
-    return result.scalars().all()
-
-
 async def update_team(db: AsyncSession, team: Team, team_data: TeamUpdate) -> Team:
     """Изменить команду"""
     for field, value in team_data.dict(exclude_unset=True).items():
