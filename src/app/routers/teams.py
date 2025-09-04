@@ -183,3 +183,41 @@ async def delete_team(
 
     await team_crud.delete_team(db, team)
     return {'detail': f'Команда {team_id} удалена'}
+
+
+@router.delete('/{team_id}/users/{user_id}', status_code=status.HTTP_200_OK)
+async def remove_user_from_team(
+    team_id: int,
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role('manager', 'admin'))
+):
+    """
+    Удаление пользователя из команды
+    (доступно только менеджерам и админам)
+    """
+
+    if current_user.team_id != team_id and current_user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+    
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Пользователь не найден'
+        )
+    
+    if user.team_id != team_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Пользователь не состоит в этой команде'
+        )
+    
+    user.team_id = None
+    db.add(user)
+    await db.commit()
+    return {'detail': f'Пользователь {user_id} удален из команды {team_id}'}
