@@ -212,3 +212,20 @@ async def get_average_grade_by_user(
     
     avg = await evaluation_service.get_average_by_user(db, user_id)
     return {'user_id': user_id, 'average_grade': avg}
+
+
+@router.get("/average/team/{team_id}")
+async def average_grade_team(
+    team_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role('manager', 'admin'))
+):
+    """Получить среднню оценку команды"""
+    if current_user.team_id != team_id and current_user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+    
+    avg = await evaluation_service.get_average_grade_by_team(db, team_id)
+    return {"team_id": team_id, "average_grade": avg}
