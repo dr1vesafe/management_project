@@ -59,6 +59,12 @@ async def get_tasks_by_team(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
     team_id: Optional[int] = Query(None, description='id команды'),
+    task_status: Optional[TaskStatus] = Query(None, description='Фильтраци по статусу задачи'),
+    performer_id: Optional[int] = Query(None, description='Фильтрация по пользователю'),
+    deadline_before: Optional[datetime] = Query(None, description='Дедлайн до даты'),
+    deadline_after: Optional[datetime] = Query(None, description='Дедлайн после даты'),
+    limit: int = Query(10, ge=1, le=100, description='Количество записей'),
+    offset: int = Query(0, ge=0, description='Смещение'),
 ):
     """Получить задачи для команды"""
     if not team_id:
@@ -67,7 +73,7 @@ async def get_tasks_by_team(
                 status_code = status.HTTP_400_BAD_REQUEST,
                 detail = 'Пользователь должен состоять в команде'
             )
-        return await task_crud.get_tasks_by_team(db, user.team_id)
+        team_id = user.team_id
     
     if user.team_id != team_id and user.role != 'admin':
         raise HTTPException(
@@ -75,39 +81,33 @@ async def get_tasks_by_team(
             detail = 'Недостаточно прав'
         )
     
-    return await task_crud.get_tasks_by_team(db, team_id)
+    stmt = select(Task).where(Task.team_id == team_id)
 
+    if task_status:
+        stmt = stmt.where(Task.status == task_status)
+    if performer_id:
+        stmt = stmt.where(Task.performer_id == performer_id)
+    if deadline_before:
+        stmt = stmt.where(Task.deadline_date <= deadline_before)
+    if deadline_after:
+        stmt = stmt.where(Task.deadline_date >= deadline_after)
 
-@router.get('/performer', response_model=list[TaskRead])
-async def get_tasks_by_performer(
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-    performer_id: Optional[int] = Query(None, description='id пользователя'),
-):
-    """Получить задачи для пользователя"""
-    if not performer_id:
-        return await task_crud.get_tasks_by_team(db, user.id)
-    
-    if user.id != performer_id and user.role != 'admin':
-        raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN,
-            detail = 'Недостаточно прав'
-        )
-    
-    return await task_crud.get_tasks_by_performer(db, performer_id)
+    stmt = stmt.limit(limit).offset(offset)
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 @router.get('/all', response_model=list[TaskRead])
 async def get_all_tasks(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role('admin')),
-    status: Optional[TaskStatus] = Query(None, description='Фильтраци по статусу задачи'),
+    task_status: Optional[TaskStatus] = Query(None, description='Фильтраци по статусу задачи'),
     performer_id: Optional[int] = Query(None, description='Фильтрация по пользователю'),
     team_id: Optional[int] = Query(None, description='Фильрация по команде'),
     deadline_before: Optional[datetime] = Query(None, description='Дедлайн до даты'),
     deadline_after: Optional[datetime] = Query(None, description='Дедлайн после даты'),
     limit: int = Query(10, ge=1, le=100, description='Количество записей'),
-    offset: int = Query(0, ge=1, description='Смещение'),
+    offset: int = Query(0, ge=0, description='Смещение'),
 ):
     """
     Получить список всех задач
@@ -115,8 +115,8 @@ async def get_all_tasks(
     """
     stmt = select(Task)
 
-    if status:
-        stmt = stmt.where(Task.status == status)
+    if task_status:
+        stmt = stmt.where(Task.status == task_status)
     if performer_id:
         stmt = stmt.where(Task.performer_id == performer_id)
     if team_id:

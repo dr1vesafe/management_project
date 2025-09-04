@@ -20,18 +20,6 @@ async def get_task(db: AsyncSession, task_id: int) -> Task | None:
     return result.scalars().first()
 
 
-async def get_tasks_by_team(db: AsyncSession, team_id: int) -> list[Task]:
-    """Получить список задач для команды"""
-    result = await db.execute(select(Task).where(Task.team_id == team_id))
-    return result.scalars().all()
-
-
-async def get_tasks_by_performer(db: AsyncSession, performer_id: int) -> list[Task]:
-    """Получить список задач для пользователя"""
-    result = await db.execute(select(Task).where(Task.performer_id == performer_id))
-    return result.scalars().all()
-
-
 async def update_task(db: AsyncSession, task: Task, task_data: TaskUpdate) -> Task:
     """Изменить задачу"""
     for field, value in task_data.dict(exclude_unset=True).items():
