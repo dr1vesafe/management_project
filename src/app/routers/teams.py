@@ -93,7 +93,7 @@ async def get_all_teams(
     return result.scalars().all()
 
 
-@router.post('/join')
+@router.post('/membership')
 async def join_team_by_code(
     body: JoinTeamRequest,
     db: AsyncSession = Depends(get_db),
@@ -121,6 +121,25 @@ async def join_team_by_code(
     await db.refresh(user)
 
     return {'detail': f'Вы успешно присоединились к команде {team.name}'}
+
+
+@router.delete('/membership', status_code=status.HTTP_200_OK)
+async def leave_team(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Выйти из команды"""
+    if not current_user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Вы не состоите в команде'
+        )
+    
+    user = await db.merge(current_user)
+    user.team_id = None
+    db.add(user)
+    await db.commit()
+    return {'detail': 'Вы успешно покинули команду'}
 
 
 @router.get('/{team_id}', response_model=TeamRead)
