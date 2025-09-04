@@ -1,13 +1,17 @@
 from typing import Optional
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.app.schemas.meeting import MeetingRead, MeetingCreate, MeetingUpdate
 from src.app.database import get_db
 from src.app.services import meeting_crud
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.models.user import User
+from src.app.models.meeting import Meeting
 
 router = APIRouter(prefix='/meetings', tags=['meetings'])
 
@@ -56,13 +60,32 @@ async def create_meeting(
 @router.get('/all', response_model=list[MeetingRead])
 async def get_all_meetings(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role('admin'))
+    _: User = Depends(require_role('admin')),
+    team_id: Optional[int] = Query(None, description='Фильтрация по команде'),
+    organizer_id: Optional[int] = Query(None, description='Фильтрация по организатору'),
+    scheduled_before: Optional[datetime] = Query(None, description='Встречи до даты'),
+    scheduled_after: Optional[datetime] = Query(None, description='Встречи после даты'),
+    limit: int = Query(10, ge=1, le=100, description='Количество записей'),
+    offset: int = Query(0, ge=0, description='Смещение'),
 ):
     """
     Получить список всех встреч
     (доступно только админам)
     """
-    return await meeting_crud.get_all_meetings(db)
+    stmt = select(Meeting).options(selectinload(Meeting.participants))
+
+    if team_id:
+        stmt = stmt.where(Meeting.team_id == team_id)
+    if organizer_id:
+        stmt = stmt.where(Meeting.organizer_id == organizer_id)
+    if scheduled_before:
+        stmt = stmt.where(Meeting.scheduled_at <= scheduled_before)
+    if scheduled_after:
+        stmt = stmt.where(Meeting.scheduled_at >= scheduled_after)
+
+    stmt = stmt.limit(limit).offset(offset)
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 @router.get('/{meeting_id}', response_model=MeetingRead)
@@ -82,6 +105,11 @@ async def get_meetings_by_team(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
     team_id: Optional[int] = Query(None, description='id команды'),
+    organizer_id: Optional[int] = Query(None, description='Фильтрация по организатору'),
+    scheduled_before: Optional[datetime] = Query(None, description='Встречи до даты'),
+    scheduled_after: Optional[datetime] = Query(None, description='Встречи после даты'),
+    limit: int = Query(10, ge=1, le=100, description='Количество записей'),
+    offset: int = Query(0, ge=0, description='Смещение'),
 ):
     """Получить встречи для команды"""
     if not team_id:
@@ -90,7 +118,7 @@ async def get_meetings_by_team(
                 status_code = status.HTTP_400_BAD_REQUEST,
                 detail = 'Пользователь должен состоять в команде'
             )
-        return await meeting_crud.get_meetings_by_team(db, user.team_id)
+        team_id = user.team_id
     
     if user.team_id != team_id and user.role != 'admin':
         raise HTTPException(
@@ -98,7 +126,18 @@ async def get_meetings_by_team(
             detail = 'Недостаточно прав'
         )
     
-    return await meeting_crud.get_meetings_by_team(db, team_id)
+    stmt = select(Meeting).options(selectinload(Meeting.participants)).where(Meeting.team_id == team_id)
+
+    if organizer_id:
+        stmt = stmt.where(Meeting.organizer_id == organizer_id)
+    if scheduled_before:
+        stmt = stmt.where(Meeting.scheduled_at <= scheduled_before)
+    if scheduled_after:
+        stmt = stmt.where(Meeting.scheduled_at >= scheduled_after)
+
+    stmt = stmt.limit(limit).offset(offset)
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 @router.put('/{meeting_id}', response_model=MeetingRead)

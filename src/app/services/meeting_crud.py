@@ -42,24 +42,6 @@ async def get_meeting(db: AsyncSession, meeting_id: int) -> Meeting | None:
     return result.scalars().first()
 
 
-async def get_all_meetings(db: AsyncSession) -> list[Meeting]:
-    """Получить список всех встреч"""
-    result = await db.execute(select(Meeting))
-    return result.scalars().all()
-
-
-async def get_meetings_by_team(db: AsyncSession, team_id: int) -> list[Meeting]:
-    """Получить список встреч для команды"""
-    result = await db.execute(
-        select(Meeting)
-        .options(
-            selectinload(Meeting.participants)
-        )
-        .where(Meeting.team_id == team_id)
-    )
-    return result.scalars().all()
-
-
 async def update_meeting(
         db: AsyncSession,
         meeting: Meeting,
