@@ -18,7 +18,7 @@ async def change_task_status(
         user: User
 ):
     """Изменить статус задачи"""
-    if not task.performer_id or user.id != task.performer_id:
+    if not task.performer_id or user.id != task.performer_id and user.role not in ['manager', 'admin']:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Только исполнитель может менять статус задачи'

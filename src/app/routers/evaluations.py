@@ -11,7 +11,7 @@ from src.app.auth.dependencies import get_current_user, require_role
 from src.app.models.user import User
 from src.app.models.task import Task
 from src.app.models.evaluation import Evaluation, EvaluationGrade
-from src.app.services import evaluation_crud
+from src.app.services import evaluation_crud, evaluation_service
 
 router = APIRouter(prefix='/evaluations', tags=['evaluations'])
 
@@ -187,3 +187,28 @@ async def delete_evaluation(
     
     await evaluation_crud.delete_evaluation(db, evaluation)
     return {'detail': f'Оценка {evaluation_id} удалена'}
+
+
+@router.get('/average/user/{user_id}')
+async def get_average_grade_by_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role('manager', 'admin'))
+):
+    """Получить среднюю оценку пользователя"""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Пользователь не найден'
+        )
+    
+    if current_user.team_id != user.team_id and current_user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+    
+    avg = await evaluation_service.get_average_by_user(db, user_id)
+    return {'user_id': user_id, 'average_grade': avg}
