@@ -25,7 +25,5 @@ class TaskAdmin(ModelView, model=Task):
         Task.title,
         Task.description,
         Task.status,
-        Task.deadline_date,
-        Task.team_id,
-        Task.performer_id,
+        Task.deadline_date
     ]

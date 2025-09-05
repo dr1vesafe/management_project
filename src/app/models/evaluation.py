@@ -40,4 +40,4 @@ class Evaluation(Base):
     task = relationship('Task', back_populates='evaluations')
 
     def __repr__(self):
-        return f'<Evaluation id={self.id} score={self.score} user_id={self.user_id} task_id={self.task_id}>'
+        return f'<Evaluation id={self.id} score={self.grade} user_id={self.user_id} task_id={self.task_id}>'

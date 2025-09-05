@@ -25,6 +25,5 @@ class UserAdmin(ModelView, model=User):
         User.last_name,
         User.email,
         User.is_active,
-        User.role,
-        User.team_id
+        User.role
     ]
