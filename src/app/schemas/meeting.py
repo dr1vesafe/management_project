@@ -27,14 +27,15 @@ class MeetingBase(BaseModel):
     title: str
     description: Optional[str] = None
     scheduled_at: datetime
-    organizer_id: int
-    team_id: int
+    organizer_id: Optional[int] = None
+    team_id: Optional[int] = None
     participants: Optional[List[MeetingParticipantRead]] = []
 
 
 class MeetingCreate(MeetingBase):
     """Схема для создания встречи"""
     participants_id: Optional[List[int]] = []
+    add_team_members: bool = False
 
 
 class MeetingRead(MeetingBase):

@@ -48,13 +48,14 @@ async def create_meeting(
     Создать встречу
     (доступно только менеджерам и админам)
     """
-    if user.team_id != meeting_data.team_id and user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Недостаточно прав'
-        )
+    if meeting_data.team_id:
+        if user.team_id != meeting_data.team_id and user.role != 'admin':
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Недостаточно прав'
+            )
     
-    return await meeting_crud.create_meeting(db, meeting_data)
+    return await meeting_crud.create_meeting(db, meeting_data, user)
 
 
 @router.get('/all', response_model=list[MeetingRead])
