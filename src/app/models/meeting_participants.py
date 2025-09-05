@@ -17,3 +17,10 @@ class MeetingParticipant(Base):
 
     user = relationship('User', back_populates='meetings')
     meeting = relationship('Meeting', back_populates='participants')
+
+    def __repr__(self) -> str:
+        return f'<Meeting id = {self.meeting_id}, participant id = {self.user_id}>'
+    
+    def __str__(self) -> str:
+        return f'Meeting {self.meeting_id} | User {self.user_id}'
+    

@@ -39,5 +39,8 @@ class Evaluation(Base):
     task_id: Mapped[int] = mapped_column(Integer, ForeignKey('tasks.id', ondelete='CASCADE'), nullable=False)
     task = relationship('Task', back_populates='evaluations')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Evaluation id={self.id} score={self.grade} user_id={self.user_id} task_id={self.task_id}>'
+    
+    def __str__(self) -> str:
+        return f'Grade {self.grade} | Manager {self.manager_id} | User {self.user_id} | Task {self.task_id}'

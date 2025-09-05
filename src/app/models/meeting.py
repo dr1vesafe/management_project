@@ -26,3 +26,7 @@ class Meeting(Base):
 
     def __repr__(self) -> str:
         return f'<Meeting id={self.id} title={self.title} sheduled_at={self.scheduled_at}>'
+
+    def __str__(self) -> str:
+        return f'{self.title} | Team {self.team_id}'
+    

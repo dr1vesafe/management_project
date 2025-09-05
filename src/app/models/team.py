@@ -25,5 +25,8 @@ class Team(Base):
     
     members = relationship('User', back_populates='team', cascade='all, delete-orphan')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Team id={self.id} name={self.name} code={self.code}>'
+    
+    def __str__(self) -> str:
+        return self.name

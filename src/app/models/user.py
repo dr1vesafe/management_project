@@ -38,5 +38,8 @@ class User(Base):
 
     received_evaluations = relationship('Evaluation', back_populates='user', foreign_keys='Evaluation.user_id')
 
-    def __repr__(self):
-        return f'<Use id={self.id} email={self.email} role={self.role}>'
+    def __repr__(self) -> str:
+        return f'<User id={self.id} email={self.email} role={self.role}>'
+
+    def __str__(self) -> str:
+        return self.email

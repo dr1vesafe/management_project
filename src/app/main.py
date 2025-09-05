@@ -6,7 +6,7 @@ from .database import engine
 from src.app.auth.auth import fastapi_users
 from src.app.schemas.user import UserRead, UserCreate
 from src.app.routers import users, auth, tasks, teams, evaluations, meetings
-from src.app.admin import user, team, task, meeting, evaluation
+from src.app.admin import user, team, task, meeting, evaluation, meeting_participants
 
 
 def create_application() -> FastAPI:
@@ -40,3 +40,4 @@ admin.add_view(team.TeamAdmin)
 admin.add_view(task.TaskAdmin)
 admin.add_view(meeting.MeetingAdmin)
 admin.add_view(evaluation.EvaluationAdmin)
+admin.add_view(meeting_participants.MeetingParticipantAdmin)

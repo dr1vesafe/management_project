@@ -36,3 +36,6 @@ class Task(Base):
 
     def __repr__(self) -> str:
         return f'<Task id={self.id} title={self.title} status={self.status}>'
+    
+    def __str__(self) -> str:
+        return f'{self.title} | Team {self.team_id}'
