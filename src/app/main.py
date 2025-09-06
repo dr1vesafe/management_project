@@ -1,6 +1,4 @@
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from sqladmin import Admin
 
 from .config import settings
@@ -35,7 +33,6 @@ def create_application() -> FastAPI:
 
 
 app = create_application()
-app.mount('/static', StaticFiles(directory='src/app/static'), name='static')
 
 admin = Admin(app, engine)
 

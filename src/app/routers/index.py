@@ -3,9 +3,9 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from src.app.auth.dependencies import get_current_user
 from src.app.models.user import User
@@ -44,6 +44,9 @@ async def index(
         )
         meetings = meetings_result.scalars().all()
 
+    if user is None and request.cookies.get("refresh_token"):
+        return RedirectResponse(url="/auth/refresh?next=/")
+    
     return templates.TemplateResponse('index.html', {
         'request': request,
         'user': user,

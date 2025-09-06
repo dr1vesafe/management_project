@@ -22,30 +22,24 @@ security = OptionalHTTPBearer()
 
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    user_manager: UserManager = Depends(get_user_manager),
-    strategy = Depends(access_backend.get_strategy),
+    request: Request,
+    user_manager: UserManager = Depends(get_user_manager)
 ) -> Optional[User]:
-    if credentials is None:
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.lower().startswith("bearer "):
+        token = auth_header[7:].strip()
+    elif request.cookies.get("access_token"):
+        token = request.cookies.get("access_token").removeprefix("Bearer ").strip()
+
+    if not token:
         return None
-    
+
     try:
-        token = credentials.credentials
-        user = await strategy.read_token(token, user_manager)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Неверный access токен'
-            )
-        
+        user = await access_backend.get_strategy().read_token(token, user_manager)
         return user
-        
-    except Exception as e:
-        print(f'Ошибка аутентификации: {e}')
-        raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Неверный access токен'
-        )
+    except Exception:
+        return None 
     
 
 def require_role(*roles: str):

@@ -1,47 +1,60 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_users.authentication import JWTStrategy
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 
 from src.app.auth.user_manager import get_user_manager, UserManager
 from src.app.auth.auth import access_backend, refresh_backend
 
 router = APIRouter(prefix='/auth', tags=['auth'])
+templates = Jinja2Templates(directory="src/app/templates")
 
 
-@router.post('/login')
-async def login(
-    data: OAuth2PasswordRequestForm = Depends(),
+@router.get("/login")
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+
+
+@router.post("/login")
+async def login_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
     user_manager: UserManager = Depends(get_user_manager)
 ):
-    credentials = OAuth2PasswordRequestForm(
-        username=data.username,
-        password=data.password
-    )
-
-    user = await user_manager.authenticate(credentials)
+    user = await user_manager.authenticate(OAuth2PasswordRequestForm(
+        username=username,
+        password=password,
+        scope=""
+    ))
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            datail='Неверный email или пароль'
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "error": "Неверный email или пароль"}
         )
     
     access_token = await access_backend.get_strategy().write_token(user)
-
     refresh_token = await refresh_backend.get_strategy().write_token(user)
 
-    return {'access_token': access_token, 'refresh_token': refresh_token, 'token_type': 'bearer'}
+    response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
+    response.set_cookie(key="refresh_token", value=f"Bearer {refresh_token}", httponly=True)
+    return response
 
 
-@router.post("/refresh")
-async def refresh_token(
-    token: str,
-    user_manager: UserManager = Depends(get_user_manager)
-):
-    strategy: JWTStrategy = refresh_backend.get_strategy()
-    user = await strategy.read_token(token, user_manager)
+@router.get("/refresh")
+async def refresh_token(request: Request, user_manager = Depends(get_user_manager)):
+    token = request.cookies.get("refresh_token")
+    if not token:
+        return RedirectResponse(url="/auth/login")
+
+    refresh_token = token.removeprefix("Bearer ").strip()
+    user = await refresh_backend.get_strategy().read_token(refresh_token, user_manager)
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-    
+        return RedirectResponse(url="/auth/login") 
+
     new_access_token = await access_backend.get_strategy().write_token(user)
-    return {"access_token": new_access_token, "token_type": "bearer"}
-    
+
+    next_url = request.query_params.get("next", "/")
+    response = RedirectResponse(url=next_url)
+    response.set_cookie("access_token", f"Bearer {new_access_token}", httponly=True)
+    return response
