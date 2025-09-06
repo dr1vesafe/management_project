@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 
 from src.app.auth.user_manager import get_user_manager, UserManager
+from src.app.schemas.user import UserCreate
 from src.app.auth.auth import access_backend, refresh_backend
 
 router = APIRouter(prefix='/auth', tags=['auth'])
@@ -67,3 +68,41 @@ async def logout():
     response.delete_cookie('access_token')
     response.delete_cookie('refresh_token')
     return response
+
+
+@router.get('/register')
+async def register_page(request: Request):
+    return templates.TemplateResponse('register.html', {'request': request, 'error': None})
+
+
+@router.post('/register')
+async def resgister_submit(
+    request: Request,
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    password_confirm: str = Form(...),
+    user_manager = Depends(get_user_manager)
+):
+    if password != password_confirm:
+        return templates.TemplateResponse(
+            'register.html',
+            {'request': request, 'error': 'Пароли не совпадают'}
+        )
+    
+    try:
+        await user_manager.create(
+            UserCreate(
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name
+            )
+        )
+        return RedirectResponse(url='/auth/login', status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        return templates.TemplateResponse(
+            'register.html',
+            {'request': request, 'error': str(e)}
+        )

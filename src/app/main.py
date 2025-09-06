@@ -15,12 +15,6 @@ def create_application() -> FastAPI:
         debug=settings.DEBUG,
     )
 
-    app.include_router(
-        fastapi_users.get_register_router(UserRead, UserCreate),
-        prefix='/auth',
-        tags=['auth']
-    )
-
     app.include_router(users.router)
     app.include_router(auth.router)
     app.include_router(tasks.router)
