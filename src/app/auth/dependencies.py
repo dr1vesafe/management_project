@@ -11,9 +11,9 @@ from src.app.models.user import User
 
 class OptionalHTTPBearer(HTTPBearer):
     async def __call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]:
-        authorization: str = request.headers.get("Authorization")
+        authorization: str = request.headers.get('Authorization')
         scheme, credentials = get_authorization_scheme_param(authorization)
-        if not authorization or scheme.lower() != "bearer":
+        if not authorization or scheme.lower() != 'bearer':
             return None
         return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
 
@@ -25,12 +25,12 @@ async def get_current_user(
     request: Request,
     user_manager: UserManager = Depends(get_user_manager)
 ) -> Optional[User]:
-    auth_header = request.headers.get("Authorization")
+    auth_header = request.headers.get('Authorization')
     token = None
-    if auth_header and auth_header.lower().startswith("bearer "):
+    if auth_header and auth_header.lower().startswith('bearer '):
         token = auth_header[7:].strip()
-    elif request.cookies.get("access_token"):
-        token = request.cookies.get("access_token").removeprefix("Bearer ").strip()
+    elif request.cookies.get('access_token'):
+        token = request.cookies.get('access_token').removeprefix('Bearer ').strip()
 
     if not token:
         return None
@@ -43,7 +43,7 @@ async def get_current_user(
     
 
 def require_role(*roles: str):
-    """Проверка роли пользователя"""
+    '''Проверка роли пользователя'''
     async def dependency(user: User = Depends(get_current_user)):
         if user.role not in roles:
             raise HTTPException(
