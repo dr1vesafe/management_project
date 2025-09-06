@@ -1,18 +1,34 @@
-from fastapi import Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security.utils import get_authorization_scheme_param
 
 from src.app.auth.auth import access_backend
 from src.app.auth.user_manager import get_user_manager, UserManager
 from src.app.models.user import User
 
-security = HTTPBearer()
+
+class OptionalHTTPBearer(HTTPBearer):
+    async def __call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]:
+        authorization: str = request.headers.get("Authorization")
+        scheme, credentials = get_authorization_scheme_param(authorization)
+        if not authorization or scheme.lower() != "bearer":
+            return None
+        return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
+
+
+security = OptionalHTTPBearer()
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     user_manager: UserManager = Depends(get_user_manager),
     strategy = Depends(access_backend.get_strategy),
-) -> User:
+) -> Optional[User]:
+    if credentials is None:
+        return None
+    
     try:
         token = credentials.credentials
         user = await strategy.read_token(token, user_manager)

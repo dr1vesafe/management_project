@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Главная панель{% endblock %}
+
+{% block content %}
+{% if user %}
+    <h1 class="mb-4">Добро пожаловать, {{ user }}!</h1>
+
+    <div class="row g-3">
+       <div class="col-md-4">
+            <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Моя команда</h5>
+            
+                {% if team %}
+                    <p class="card-text">
+                    <strong>{{ team }}</strong><br>
+                    </p>
+                    <a href="/teams/{{ team.id }}" class="btn btn-primary btn-sm">Перейти в команду</a>
+                {% else %}
+                    <p class="card-text text-muted">Вы пока не состоите в команде</p>
+                    <a href="/teams/create" class="btn btn-success btn-sm">Создать команду</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Задачи</h5>
+                    <p class="card-text">Всего задач: <strong>{{ tasks|length }}</strong></p>
+                    <a href="/tasks" class="btn btn-primary btn-sm">Подробнее</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Запланированные встречи</h5>
+                    {% if meetings %}
+                        <p class="card-text">Количество встреч: <strong>{{ meetings|length }}</strong></p>
+                    {% else %}
+                        <p class="card-text text-muted">Нет запланированных встреч</p>
+                    {% endif %}
+                    <a href="/meetings" class="btn btn-primary btn-sm">Подробнее</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <div class="text-center py-5">
+        <h1 class="mb-4">Добро пожаловать на Management Platform</h1>
+        <p class="lead">Это платформа для управления командами, задачами и встречами.<br>  
+        Зарегистрируйтесь, чтобы начать работу с вашим проектом!</p>
+        <a href="/register" class="btn btn-primary btn-lg">Зарегистрироваться</a>
+        <a href="/login" class="btn btn-outline-secondary btn-lg ms-2">Войти</a>
+    </div>
+{% endif %}
+{% endblock %}
