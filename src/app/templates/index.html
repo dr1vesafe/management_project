@@ -5,7 +5,9 @@
 {% block content %}
 {% if user %}
     <h1 class="mb-4">Добро пожаловать, {{ user }}!</h1>
-
+    {% if message %}
+        <div class="alert alert-info">{{ message }}</div>
+    {% endif %}
     <div class="row g-3">
        <div class="col-md-4">
             <div class="card shadow-sm">
@@ -16,7 +18,19 @@
                     <p class="card-text">
                     <strong>{{ team }}</strong><br>
                     </p>
-                    <a href="/teams/{{ team.id }}" class="btn btn-primary btn-sm">Перейти в команду</a>
+                    <div class="d-flex gap-2">
+                        <a href="/teams/{{ team.id }}" class="btn btn-primary btn-sm flex-fill">
+                            Перейти в команду
+                        </a>
+                        <form action="/teams/leave-team" method="post" 
+                                onsubmit="return confirm('Вы уверены, что хотите покинуть команду?');" 
+                                class="flex-fill">
+                            <input type="hidden" name="_method" value="delete">
+                            <button type="submit" class="btn btn-danger btn-sm w-100">
+                            Выйти из команды
+                            </button>
+                        </form>
+                    </div>
                 {% else %}
                     <p class="card-text text-muted">Вы пока не состоите в команде</p>
                     <a href="/teams/join-team" class="btn btn-success btn-sm">Вступить в команду</a>

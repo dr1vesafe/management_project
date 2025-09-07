@@ -23,7 +23,8 @@ templates = Jinja2Templates(directory='src/app/templates')
 async def index(
     request: Request,
     user: Optional[User] = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    message: Optional[str] = None
 ):
     """Главная страница"""
     team = None
@@ -53,5 +54,6 @@ async def index(
         'user': user,
         'team': team,
         'tasks' : tasks,
-        'meetings': meetings
+        'meetings': meetings,
+        'message': message
     })

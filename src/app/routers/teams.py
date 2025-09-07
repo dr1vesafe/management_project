@@ -96,37 +96,7 @@ async def get_all_teams(
     return result.scalars().all()
 
 
-@router.post('/membership')
-async def join_team_by_code(
-    body: JoinTeamRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Вступить в команду по коду"""
-    if current_user.team_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Вы уже состоите в команде'
-        )
-    
-    result = await db.execute(select(Team).where(Team.code == body.team_code))
-    team = result.scalars().first()
-    if not team:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Команда с таким кодом не найдена'
-        )
-    
-    user = await db.merge(current_user)
-    user.team_id = team.id
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-
-    return {'detail': f'Вы успешно присоединились к команде {team.name}'}
-
-
-@router.delete('/membership', status_code=status.HTTP_200_OK)
+@router.post('/leave-team', status_code=status.HTTP_200_OK)
 async def leave_team(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -142,7 +112,10 @@ async def leave_team(
     user.team_id = None
     db.add(user)
     await db.commit()
-    return {'detail': 'Вы успешно покинули команду'}
+    return RedirectResponse(
+        url="/?message=Вы%20успешно%20покинули%20команду",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 @router.get('/join-team')
@@ -164,7 +137,6 @@ async def join_team(
 ):
     """Вступление в команду по коду"""
     error = None
-    success = None
 
     if not current_user:
         error = 'Необходимо войти в аккаунт'
@@ -196,11 +168,10 @@ async def join_team(
     await db.commit()
     await db.refresh(user)
 
-    success = f'Вы успешно присоединились к команде {team.name}'
-    return templates.TemplateResponse('join_team.html', {
-            'request': request,
-            'success': success
-        })
+    return RedirectResponse(
+        url="/?message=Вы%20успешно%20вступили%20в%20команду",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 @router.get('/{team_id}', response_model=TeamRead)
