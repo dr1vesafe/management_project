@@ -88,33 +88,6 @@ async def create_team_submit(
     )
 
 
-@router.get('/{team_id}')
-async def team_page(
-    team_id: int,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user)
-):
-    """Страница команды"""
-    result = await db.execute(
-        select(Team)
-        .where(Team.id == team_id)
-        .options(selectinload(Team.members))
-    )
-    team = result.scalars().first()
-    
-    members = team.members if hasattr(team, 'members') else []
-    members = sorted(
-        team.members,
-        key=lambda m: role_order.get(m.role.name if m.role else 'user', 99)
-    )
-
-    return templates.TemplateResponse(
-        'team/team.html',
-        {'request': request, 'team': team, 'members': members, 'user': user}
-    )
-
-
 @router.post('/leave-team', status_code=status.HTTP_200_OK)
 async def leave_team(
     db: AsyncSession = Depends(get_db),
@@ -192,6 +165,69 @@ async def join_team(
 
     return RedirectResponse(
         url="/?message=Вы%20успешно%20вступили%20в%20команду",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+@router.get('/{team_id}')
+async def team_page(
+    team_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """Страница команды"""
+    result = await db.execute(
+        select(Team)
+        .where(Team.id == team_id)
+        .options(selectinload(Team.members))
+    )
+    team = result.scalars().first()
+    
+    members = team.members if hasattr(team, 'members') else []
+    members = sorted(
+        team.members,
+        key=lambda m: role_order.get(m.role.name if m.role else 'user', 99)
+    )
+
+    return templates.TemplateResponse(
+        'team/team.html',
+        {'request': request, 'team': team, 'members': members, 'user': user}
+    )
+
+
+@router.get('/{team_id}/edit')
+async def edit_team_page(
+    team_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Страница изменения команды"""
+    team = await check_team(db, team_id, user)
+    
+    return templates.TemplateResponse('team/edit_team.html', {
+        'request': request,
+        'team': team,
+        'error': None,
+        'user': user
+    })
+
+
+@router.post('/{team_id}/edit')
+async def edit_team_submit(
+    team_id: int,
+    name: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Изменение команды"""
+    team = await check_team(db, team_id, user)
+    team_data = TeamUpdate(name=name)
+    await team_crud.update_team(db, team, team_data)
+
+    return RedirectResponse(
+        url=f'/teams/{team_id}',
         status_code=status.HTTP_303_SEE_OTHER
     )
 
