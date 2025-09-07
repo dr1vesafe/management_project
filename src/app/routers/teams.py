@@ -120,6 +120,9 @@ async def leave_team(
     
     user = await db.merge(current_user)
     user.team_id = None
+    if user.role == 'manager':
+        user.role = 'user'
+
     db.add(user)
     await db.commit()
     return RedirectResponse(

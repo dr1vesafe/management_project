@@ -8,6 +8,9 @@
   <h2 class="mb-4">Профиль пользователя</h2>
 
   <div class="card shadow-sm">
+    {% if message %}
+        <div class="alert alert-success">{{ message }}</div>
+    {% endif %}
     <div class="card-body">
       <p><strong>Имя:</strong> {{ user.first_name or "-" }}</p>
       <p><strong>Фамилия:</strong> {{ user.last_name or "-" }}</p>
@@ -21,7 +24,10 @@
         {% endif %}
       </p>
 
-      <a href="/profile/edit" class="btn btn-primary mt-3">Редактировать профиль</a>
+      <a href="/users/profile/edit" class="btn btn-primary mt-3">Редактировать профиль</a>
+      <form action="/users/delete" method="post" onsubmit="return confirm('Вы уверены, что хотите удалить аккаунт? Это действие нельзя отменить.');">
+        <button type="submit" class="btn btn-danger">Удалить аккаунт</button>
+      </form>
     </div>
   </div>
 </div>

@@ -67,6 +67,9 @@
 
 {% else %}
     <div class="text-center py-5">
+        {% if message %}
+            <div class="alert alert-info">{{ message }}</div>
+        {% endif %}
         <h1 class="mb-4">Добро пожаловать на Management Platform</h1>
         <p class="lead">Это платформа для управления командами, задачами и встречами.<br>  
         Зарегистрируйтесь, чтобы начать работу с вашим проектом!</p>

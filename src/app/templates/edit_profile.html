@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать профиль{% endblock %}
+
+{% block content %}
+<body>
+<div class="container mt-5">
+  <h2 class="mb-4">Редактировать профиль</h2>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <form method="post">
+    <div class="mb-3">
+      <label for="first_name" class="form-label">Имя</label>
+      <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name or '' }}">
+    </div>
+
+    <div class="mb-3">
+      <label for="last_name" class="form-label">Фамилия</label>
+      <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name or '' }}">
+    </div>
+
+    <div class="mb-3">
+      <label for="email" class="form-label">Email</label>
+      <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+    <a href="/profile" class="btn btn-secondary">Отмена</a>
+  </form>
+</div>
+</body>
+{% endblock %}

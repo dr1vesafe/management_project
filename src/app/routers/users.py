@@ -1,8 +1,9 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -17,59 +18,60 @@ templates = Jinja2Templates(directory='src/app/templates')
 
 
 @router.get('/profile')
-async def profile_page(request: Request, user: User = Depends(get_current_user)):
+async def profile_page(request: Request, user: User = Depends(get_current_user), message: Optional[str] = None):
     """Страница профиля пользователя"""
     if not user:
         return templates.TemplateResponse('login.html', {'request': request, 'error': 'Войдите в аккаунт'})
     
-    return templates.TemplateResponse('profile.html', {'request': request, 'user': user})
-   
-
-@router.get('/me', response_model=UserRead)
-async def get_me(user: User = Depends(get_current_user)):
-    """
-    Получить данные текущего пользователя
-    (доступно любому авторизованному пользователю)
-    """
-    return user
+    return templates.TemplateResponse('profile.html', {'request': request, 'user': user, 'message': message})
 
 
-@router.patch('/me', response_model=UserRead)
+@router.get('/profile/edit')
+async def edit_profile_page(request: Request, user: User = Depends(get_current_user)):
+    """Страница редактирования профиля"""
+    return templates.TemplateResponse('edit_profile.html', {'request': request, 'user': user})
+
+
+@router.post('/profile/edit')
 async def update_current_user(
-    data: UserUpdate,
+    request: Request,
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Изменить данные текущего пользователя
-    (доступно любому авторизованному пользователю)
-    """
+    """Редактирование профиля"""
     result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Пользователь не найден'
-        )
+        return templates.TemplateResponse('edit_profile.html', {
+            'request': request,
+            'user': user,
+            'error': 'Пользователь не найден'
+        })
     
-    for field, value in data.dict(exclude_unset=True).items():
-        setattr(user, field, value)
+    user.first_name = first_name
+    user.last_name = last_name
+    user.email = email
 
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    return user
+
+    return RedirectResponse(
+        url='/users/profile?message=Профиль успешно обновлен',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
-@router.delete('/me', status_code=status.HTTP_204_NO_CONTENT)
+@router.post('/delete')
 async def delete_current_user(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Удалить текущего пользователя
-    (доступно любому авторизованному пользователю)
-    """
+    """Удалить текущего пользователя"""
     result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalar_one_or_none()
     if not user:
@@ -80,7 +82,15 @@ async def delete_current_user(
     
     await db.delete(user)
     await db.commit()
-    return {'msg': 'Пользователь удален'}
+    response = RedirectResponse(
+        url="/?message=Вы%20успешно%20удалили%20аккаунт",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+    response.delete_cookie('access_token')
+    response.delete_cookie('refresh_token')
+
+    return response
 
 
 @router.get('/', response_model=list[UserRead])
