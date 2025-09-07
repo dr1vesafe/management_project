@@ -1,7 +1,8 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -12,7 +13,17 @@ from src.app.auth.dependencies import get_current_user, require_role
 from src.app.auth.user_manager import get_user_manager, UserManager
 
 router = APIRouter(prefix='/users', tags=['users'])
+templates = Jinja2Templates(directory='src/app/templates')
 
+
+@router.get('/profile')
+async def profile_page(request: Request, user: User = Depends(get_current_user)):
+    """Страница профиля пользователя"""
+    if not user:
+        return templates.TemplateResponse('login.html', {'request': request, 'error': 'Войдите в аккаунт'})
+    
+    return templates.TemplateResponse('profile.html', {'request': request, 'user': user})
+   
 
 @router.get('/me', response_model=UserRead)
 async def get_me(user: User = Depends(get_current_user)):

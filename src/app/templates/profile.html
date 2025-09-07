@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль пользователя{% endblock %}
+
+{% block content %}
+<body>
+<div class="container mt-5">
+  <h2 class="mb-4">Профиль пользователя</h2>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <p><strong>Имя:</strong> {{ user.first_name or "-" }}</p>
+      <p><strong>Фамилия:</strong> {{ user.last_name or "-" }}</p>
+      <p><strong>Email:</strong> {{ user.email }}</p>
+      <p><strong>Роль:</strong> {{ user.role.value }}</p>
+      <p>  
+        {% if user.team_id %}
+          <a href="/teams/{{ user.team_id }}">Перейти к команде</a>
+        {% else %}
+          Нет команды
+        {% endif %}
+      </p>
+
+      <a href="/profile/edit" class="btn btn-primary mt-3">Редактировать профиль</a>
+    </div>
+  </div>
+</div>
+</body>
+{% endblock %}
