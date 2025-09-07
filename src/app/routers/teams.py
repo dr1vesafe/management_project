@@ -305,6 +305,46 @@ async def remove_user_from_team_submit(
     return RedirectResponse(url=f'/teams/{team_id}', status_code=status.HTTP_303_SEE_OTHER)
 
 
+@router.post('/{team_id}/users/{user_id}/promote')
+async def promote_user_to_manager(
+    team_id: int,
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Повысить user до manager"""
+    if user.team_id != team_id and user.role.name != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+
+    if user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Вы не можете изменить свою роль'
+        )
+    
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detailt='Пользователь не найден'
+        )
+    if user.team_id != team_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Пользователь не состоит в этой команде'
+        )
+    
+    user.role = 'manager'
+    db.add(user)
+    await db.commit()
+
+    return RedirectResponse(url=f'/teams/{team_id}', status_code=status.HTTP_303_SEE_OTHER)
+
+
 # Маршруты для администраторов
 @router.get('/admin/all', response_model=list[TeamRead])
 async def get_all_teams(
