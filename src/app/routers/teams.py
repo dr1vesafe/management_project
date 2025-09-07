@@ -232,6 +232,32 @@ async def edit_team_submit(
     )
 
 
+@router.post('/{team_id}/delete')
+async def delete_team_submit(
+    team_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Удаление команды"""
+    team = await check_team(db, team_id, user)
+
+    member_result = await db.execute(
+        select(User).where(User.team_id == team.id)
+    )
+    members = member_result.scalars().all()
+
+    for member in members:
+        if member.role == 'manager':
+            member.role = 'user'
+        member.team_id = None
+        db.add(member)
+    
+    await team_crud.delete_team(db, team)
+    await db.commit()
+
+    return RedirectResponse(url='/?message=Команда%20успешно%20удалена', status_code=status.HTTP_303_SEE_OTHER)
+
+
 # Маршруты для администраторов
 @router.get('/admin/all', response_model=list[TeamRead])
 async def get_all_teams(
@@ -273,31 +299,31 @@ async def get_team(
     return team
 
 
-@router.put('/{team_id}', response_model=TeamRead)
+@router.put('/admin/{team_id}', response_model=TeamRead)
 async def update_team(
     team_id: int,
     team_data: TeamUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """
     Изменение команды
-    (доступно только менеджерам и админам)
+    (доступно только админам)
     """
     team = await check_team(db, team_id, user)
 
     return await team_crud.update_team(db, team, team_data)
 
 
-@router.delete('/{team_id}')
+@router.delete('/admin/{team_id}')
 async def delete_team(
     team_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """
     Удаление команды
-    (доступно только менеджерам и админам)
+    (доступно только админам)
     """
     team = await check_team(db, team_id, user)
 
