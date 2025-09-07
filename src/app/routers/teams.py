@@ -177,6 +177,12 @@ async def team_page(
     user: User = Depends(get_current_user)
 ):
     """Страница команды"""
+    if user.team_id != team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+    
     result = await db.execute(
         select(Team)
         .where(Team.id == team_id)
@@ -258,6 +264,47 @@ async def delete_team_submit(
     return RedirectResponse(url='/?message=Команда%20успешно%20удалена', status_code=status.HTTP_303_SEE_OTHER)
 
 
+@router.post('/{team_id}/users/{user_id}/remove')
+async def remove_user_from_team_submit(
+    team_id: int,
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Удалить пользователя из команды"""
+    if user.team_id != team_id and user.role.name != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+
+    if user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Вы не можете удалить себя'
+        )
+    
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Пользователь не найден'
+        )
+    
+    if user.team_id != team_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Пользователь не состоит в этой команде'
+        )
+    
+    user.team_id = None
+    db.add(user)
+    await db.commit()
+    
+    return RedirectResponse(url=f'/teams/{team_id}', status_code=status.HTTP_303_SEE_OTHER)
+
+
 # Маршруты для администраторов
 @router.get('/admin/all', response_model=list[TeamRead])
 async def get_all_teams(
@@ -336,19 +383,12 @@ async def remove_user_from_team(
     team_id: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role('manager', 'admin'))
+    current_user: User = Depends(require_role('admin'))
 ):
     """
     Удаление пользователя из команды
-    (доступно только менеджерам и админам)
+    (доступно только админам)
     """
-
-    if current_user.team_id != team_id and current_user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Недостаточно прав'
-        )
-    
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
