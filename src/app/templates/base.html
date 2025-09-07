@@ -13,13 +13,10 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
 <div class="container-fluid">
 <button class="btn btn-outline-secondary d-lg-none" id="toggleSidebar">☰</button>
-<a class="navbar-brand ms-2 nav-brand" href="#">Management Platform</a>
+<a class="navbar-brand ms-2 nav-brand" href="/">Management Platform</a>
 
 
 <div class="collapse navbar-collapse">
-<form class="d-flex mx-auto" style="max-width:540px">
-<input class="form-control me-2" type="search" placeholder="Поиск задач, команд...">
-</form>
 <ul class="navbar-nav ms-auto align-items-center">
 <li class="nav-item me-3 small-muted">{{ user or 'Гость' }}</li>
 <li class="nav-item">
@@ -33,22 +30,24 @@
 </nav>
 
 
+{% if user %}
 <div class="d-flex">
-<aside class="sidebar p-3 border-end d-none d-lg-block" id="sidebar">
-<ul class="nav nav-pills flex-column">
-<li class="nav-item mb-2"><a class="nav-link active" href="#">Главная</a></li>
-<li class="nav-item mt-3"><a class="nav-link" href="#profile">Профиль</a></li>
-<li class="nav-item mb-2"><a class="nav-link" href="#teams">Команды</a></li>
-<li class="nav-item mb-2"><a class="nav-link" href="#tasks">Задачи</a></li>
-<li class="nav-item mb-2"><a class="nav-link" href="#meetings">Встречи</a></li>
-<li class="nav-item mb-2"><a class="nav-link" href="#evaluations">Оценки</a></li>
-</ul>
-</aside>
+    <aside class="sidebar p-3 border-end d-none d-lg-block" id="sidebar">
+        <ul class="nav nav-pills flex-column">
+            <li class="nav-item mb-2"><a class="nav-link active" href="#">Главная</a></li>
+            <li class="nav-item mt-3"><a class="nav-link" href="#profile">Профиль</a></li>
+            <li class="nav-item mb-2"><a class="nav-link" href="#teams">Команды</a></li>
+            <li class="nav-item mb-2"><a class="nav-link" href="#tasks">Задачи</a></li>
+            <li class="nav-item mb-2"><a class="nav-link" href="#meetings">Встречи</a></li>
+            <li class="nav-item mb-2"><a class="nav-link" href="#evaluations">Оценки</a></li>
+        </ul>
+    </aside>
+{% endif %}
 
 
 <main class="content p-4 container-fluid">
 {% block content %}{% endblock %}
-<footer class="mt-4 small-muted">© 2025 · Management Platform </footer>
+<footer class="mt-4 small-muted text-center">© 2025 · Management Platform </footer>
 </main>
 </div>
 

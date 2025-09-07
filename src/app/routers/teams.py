@@ -1,6 +1,8 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Form
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -13,6 +15,7 @@ from src.app.services import team_crud
 
 
 router = APIRouter(prefix='/teams', tags=['teams'])
+templates = Jinja2Templates(directory='src/app/templates')
 
 
 async def check_team(
@@ -140,6 +143,64 @@ async def leave_team(
     db.add(user)
     await db.commit()
     return {'detail': 'Вы успешно покинули команду'}
+
+
+@router.get('/join-team')
+async def join_team_page(request: Request):
+    """Страница вступления в команду"""
+    return templates.TemplateResponse('join_team.html', {
+        'request': request,
+        'error': None,
+        'success': None
+        })
+
+
+@router.post('/join-team')
+async def join_team(
+    request: Request,
+    team_code: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Вступление в команду по коду"""
+    error = None
+    success = None
+
+    if not current_user:
+        error = 'Необходимо войти в аккаунт'
+        return templates.TemplateResponse('join_team.html', {
+            'request': request,
+            'error': error
+        })
+        
+    if current_user.team_id:
+        error = 'Вы уже состоите в команде'
+        return templates.TemplateResponse('join_team.html', {
+            'request': request,
+            'error': error
+        })
+    
+    result = await db.execute(select(Team).where(Team.code == team_code))
+    team = result.scalars().first()
+
+    if not team:
+        error = 'Команда с таким кодом не найдена'
+        return templates.TemplateResponse('join_team.html', {
+            'request': request,
+            'error': error
+        })
+    
+    user = await db.merge(current_user)
+    user.team_id = team.id
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    success = f'Вы успешно присоединились к команде {team.name}'
+    return templates.TemplateResponse('join_team.html', {
+            'request': request,
+            'success': success
+        })
 
 
 @router.get('/{team_id}', response_model=TeamRead)
