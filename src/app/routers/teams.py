@@ -40,34 +40,44 @@ async def check_team(
     return team
     
 
-@router.post('/', response_model=TeamRead)
-async def create_team(
-    team_data: TeamCreate,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin')),
-):
-    """
-    Создание команды
-    (доступно только менеджерам и админам)
-    """
-    if user.team_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Пользователь уже состоит в команде'
-        )
-    
-    team = await team_crud.create_team(db, team_data)
-    
-    user = await db.merge(user)
+@router.get('/create')
+async def create_team_page(request: Request):
+    """Страница создания команды"""
+    return templates.TemplateResponse('create_team.html', {
+        'request': request,
+        'error': None
+    })
 
-    user.team_id = team.id
+
+@router.post('/create')
+async def create_team_submit(
+    request: Request,
+    name: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """Создание команды"""
+    if user.team_id:
+        return templates.TemplateResponse('create_team.html', {
+                'request': request,
+                'error': 'Вы уже состоите в команде'
+        })
+    
+    if user.role == 'user':
+        user.role = 'manager'
+
+    new_team = await team_crud.create_team(db, TeamCreate(name=name))
+    user = await db.merge(user)
+    user.team_id = new_team.id
 
     await db.commit()
     await db.refresh(user)
-    await db.refresh(team)
-    
-    return team
+    await db.refresh(new_team)
 
+    return RedirectResponse(
+        url=f"/?message=Команда%20'{new_team.name}'%20успешно%20создана",
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 @router.get('/', response_model=list[TeamRead])
