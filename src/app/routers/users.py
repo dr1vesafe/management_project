@@ -18,19 +18,20 @@ router = APIRouter(prefix='/users', tags=['users'])
 templates = Jinja2Templates(directory='src/app/templates')
 
 
+# Маршруты для пользователей
 @router.get('/profile')
 async def profile_page(request: Request, user: User = Depends(get_current_user), message: Optional[str] = None):
     """Страница профиля пользователя"""
     if not user:
         return templates.TemplateResponse('login.html', {'request': request, 'error': 'Войдите в аккаунт'})
     
-    return templates.TemplateResponse('profile.html', {'request': request, 'user': user, 'message': message})
+    return templates.TemplateResponse('profile/profile.html', {'request': request, 'user': user, 'message': message})
 
 
 @router.get('/profile/edit')
 async def edit_profile_page(request: Request, user: User = Depends(get_current_user)):
     """Страница редактирования профиля"""
-    return templates.TemplateResponse('edit_profile.html', {'request': request, 'user': user})
+    return templates.TemplateResponse('profile/edit_profile.html', {'request': request, 'user': user})
 
 
 @router.post('/profile/edit')
@@ -46,7 +47,7 @@ async def update_current_user(
     result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalar_one_or_none()
     if not user:
-        return templates.TemplateResponse('edit_profile.html', {
+        return templates.TemplateResponse('profile/edit_profile.html', {
             'request': request,
             'user': user,
             'error': 'Пользователь не найден'
@@ -94,6 +95,70 @@ async def delete_current_user(
     return response
 
 
+@router.get('/profile/change-password')
+async def change_password_page(request: Request, user: User = Depends(get_current_user)):
+    """Страница изменения пароля"""
+    return templates.TemplateResponse('profile/change_password.html', {'request': request, 'error': None, 'message': None})
+
+
+@router.post('/profile/change-password')
+async def change_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    user_manager: UserManager = Depends(get_user_manager)
+):
+    """Изменить пароль текущего пользователя"""
+    error = None
+
+    credentials = OAuth2PasswordRequestForm(
+        username=user.email,
+        password=current_password
+    )
+
+    authenticated_user = await user_manager.authenticate(credentials)
+
+    if not authenticated_user:
+        return templates.TemplateResponse(
+            'profile/change_password.html',
+            {'request': request, 'error': 'Старый пароль введен неверно', 'message': None}
+        )
+
+    if new_password != confirm_password:
+        return templates.TemplateResponse(
+            'profile/change_password.html',
+            {'request': request, 'error': 'Пароли не совпадают', 'message': None}
+        )
+
+    if len(new_password) < 8:
+        error = 'Пароль должен быть не менее 8 символов'
+    if not re.search(r'[A-Za-z]', new_password):
+        error = 'Пароль должен содержать хотя бы одну букву'
+    if not re.search(r'\d', new_password):
+        error = 'Пароль должен содержать хотя бы одну цифру'
+
+    if error:
+        return templates.TemplateResponse(
+            'profile/change_password.html',
+            {'request': request, 'error': error, 'message': None}
+        )
+    
+    user = await db.merge(user)
+    user.hashed_password = user_manager.password_helper.hash(new_password)
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return RedirectResponse(
+        url='/users/profile?message=Пароль успешно изменен',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+# Маршруты для администраторов
 @router.get('/admin/all', response_model=list[UserRead])
 async def get_all_users(
     db: AsyncSession = Depends(get_db),
@@ -107,7 +172,6 @@ async def get_all_users(
 ):
     """
     Получить всех пользователей
-    (доступно только админам)
     """
     stmt = select(User)
 
@@ -222,66 +286,3 @@ async def update_user_role(
     await db.refresh(user)
 
     return {'msg': f'Роль пользователя {user.id} изменена на {new_role.value}'}
-
-
-@router.get('/profile/change-password')
-async def change_password_page(request: Request, user: User = Depends(get_current_user)):
-    """Страница изменения пароля"""
-    return templates.TemplateResponse('change_password.html', {'request': request, 'error': None, 'message': None})
-
-
-@router.post('/profile/change-password')
-async def change_password(
-    request: Request,
-    current_password: str = Form(...),
-    new_password: str = Form(...),
-    confirm_password: str = Form(...),
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-    user_manager: UserManager = Depends(get_user_manager)
-):
-    """Изменить пароль текущего пользователя"""
-    error = None
-
-    credentials = OAuth2PasswordRequestForm(
-        username=user.email,
-        password=current_password
-    )
-
-    authenticated_user = await user_manager.authenticate(credentials)
-
-    if not authenticated_user:
-        return templates.TemplateResponse(
-            'change_password.html',
-            {'request': request, 'error': 'Старый пароль введен неверно', 'message': None}
-        )
-
-    if new_password != confirm_password:
-        return templates.TemplateResponse(
-            'change_password.html',
-            {'request': request, 'error': 'Пароли не совпадают', 'message': None}
-        )
-
-    if len(new_password) < 8:
-        error = 'Пароль должен быть не менее 8 символов'
-    if not re.search(r'[A-Za-z]', new_password):
-        error = 'Пароль должен содержать хотя бы одну букву'
-    if not re.search(r'\d', new_password):
-        error = 'Пароль должен содержать хотя бы одну цифру'
-
-    if error:
-        return templates.TemplateResponse(
-            'change_password.html',
-            {'request': request, 'error': error, 'message': None}
-        )
-    
-    user = await db.merge(user)
-    user.hashed_password = user_manager.password_helper.hash(new_password)
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-
-    return RedirectResponse(
-        url='/users/profile?message=Пароль успешно изменен',
-        status_code=status.HTTP_303_SEE_OTHER
-    )

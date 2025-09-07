@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Команда{% endblock %}
+
+{% block content %}
+<body>
+<div class="container mt-5">
+  <h2 class="mb-4">Команда: {{ team.name }}</h2>
+
+  {% if members %}
+    <div class="list-group">
+      {% for member in members %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ member.first_name or "-" }} {{ member.last_name or "-" }}</strong> ({{ member.email }})
+          </div>
+          <span class="badge bg-primary rounded-pill">{{ member.role.value if member.role else "-" }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>В команде пока нет участников.</p>
+  {% endif %}
+
+  <a href="/" class="btn btn-secondary mt-4">Назад на главную</a>
+</div>
+</body>
+{% endblock %}

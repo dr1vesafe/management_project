@@ -15,7 +15,7 @@ templates = Jinja2Templates(directory='src/app/templates')
 @router.get('/login')
 async def login_page(request: Request):
     """Страница для входа в аккаунт"""
-    return templates.TemplateResponse('login.html', {'request': request, 'error': None})
+    return templates.TemplateResponse('auth/login.html', {'request': request, 'error': None})
 
 
 @router.post('/login')
@@ -33,7 +33,7 @@ async def login_submit(
     ))
     if not user:
         return templates.TemplateResponse(
-            'login.html', {'request': request, 'error': 'Неверный email или пароль'}
+            'auth/login.html', {'request': request, 'error': 'Неверный email или пароль'}
         )
     
     access_token = await access_backend.get_strategy().write_token(user)
@@ -78,7 +78,7 @@ async def logout():
 @router.get('/register')
 async def register_page(request: Request):
     """Страница регистрации"""
-    return templates.TemplateResponse('register.html', {'request': request, 'error': None})
+    return templates.TemplateResponse('auth/register.html', {'request': request, 'error': None})
 
 
 @router.post('/register')
@@ -94,7 +94,7 @@ async def resgister_submit(
     """Регистрация пользователя"""
     if password != password_confirm:
         return templates.TemplateResponse(
-            'register.html',
+            'auth/register.html',
             {'request': request, 'error': 'Пароли не совпадают'}
         )
     
@@ -112,12 +112,12 @@ async def resgister_submit(
     except ValidationError as e:
         error_msg = '; '.join(err['msg'] for err in e.errors())
         return templates.TemplateResponse(
-            'register.html',
+            'auth/register.html',
             {'request': request, 'error': error_msg}
         )
     
     except Exception as e:
         return templates.TemplateResponse(
-            'register.html',
+            'auth/register.html',
             {'request': request, 'error': str(e)}
         )

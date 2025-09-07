@@ -49,7 +49,7 @@ async def index(
     if user is None and request.cookies.get("refresh_token"):
         return RedirectResponse(url="/auth/refresh?next=/")
     
-    return templates.TemplateResponse('index.html', {
+    return templates.TemplateResponse('main_page/index.html', {
         'request': request,
         'user': user,
         'team': team,

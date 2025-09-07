@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.app.schemas.team import TeamRead, TeamCreate, TeamUpdate, JoinTeamRequest
 from src.app.database import get_db
@@ -16,6 +17,12 @@ from src.app.services import team_crud
 
 router = APIRouter(prefix='/teams', tags=['teams'])
 templates = Jinja2Templates(directory='src/app/templates')
+
+role_order = {
+    'admin': 0,
+    'manager': 1,
+    'user': 2
+}
 
 
 async def check_team(
@@ -40,10 +47,11 @@ async def check_team(
     return team
     
 
+# Маршруты для пользователей
 @router.get('/create')
 async def create_team_page(request: Request):
     """Страница создания команды"""
-    return templates.TemplateResponse('create_team.html', {
+    return templates.TemplateResponse('team/create_team.html', {
         'request': request,
         'error': None
     })
@@ -58,7 +66,7 @@ async def create_team_submit(
 ):
     """Создание команды"""
     if user.team_id:
-        return templates.TemplateResponse('create_team.html', {
+        return templates.TemplateResponse('team/create_team.html', {
                 'request': request,
                 'error': 'Вы уже состоите в команде'
         })
@@ -80,30 +88,31 @@ async def create_team_submit(
     )
 
 
-@router.get('/', response_model=list[TeamRead])
-async def get_all_teams(
+@router.get('/{team_id}')
+async def team_page(
+    team_id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role('admin')),
-    name: Optional[str] = Query(None, description='Фильтрация по названию команды'),
-    code: Optional[str] = Query(None, description='Филтрация по коду команды'),
-    limit: int = Query(10, ge=1, le=100, description='Количество записей'),
-    offset: int = Query(0, ge=0, description='Смещение')
+    user: User = Depends(get_current_user)
 ):
-    """
-    Получение списка всех команд
-    (доступно только админам)
-    """
-    stmt = select(Team)
+    """Страница команды"""
+    result = await db.execute(
+        select(Team)
+        .where(Team.id == team_id)
+        .options(selectinload(Team.members))
+    )
+    team = result.scalars().first()
+    
+    members = team.members if hasattr(team, 'members') else []
+    members = sorted(
+        team.members,
+        key=lambda m: role_order.get(m.role.name if m.role else 'user', 99)
+    )
 
-    if name:
-        stmt = stmt.where(Team.name.ilike(f'%{name}'))
-    if code:
-        stmt = stmt.where(Team.code.ilike(f'%{code}'))
-
-    stmt = stmt.limit(limit).offset(offset)
-
-    result = await db.execute(stmt)
-    return result.scalars().all()
+    return templates.TemplateResponse(
+        'team/team.html',
+        {'request': request, 'team': team, 'members': members, 'user': user}
+    )
 
 
 @router.post('/leave-team', status_code=status.HTTP_200_OK)
@@ -134,7 +143,7 @@ async def leave_team(
 @router.get('/join-team')
 async def join_team_page(request: Request):
     """Страница вступления в команду"""
-    return templates.TemplateResponse('join_team.html', {
+    return templates.TemplateResponse('team/join_team.html', {
         'request': request,
         'error': None,
         'success': None
@@ -153,14 +162,14 @@ async def join_team(
 
     if not current_user:
         error = 'Необходимо войти в аккаунт'
-        return templates.TemplateResponse('join_team.html', {
+        return templates.TemplateResponse('team/join_team.html', {
             'request': request,
             'error': error
         })
         
     if current_user.team_id:
         error = 'Вы уже состоите в команде'
-        return templates.TemplateResponse('join_team.html', {
+        return templates.TemplateResponse('team/join_team.html', {
             'request': request,
             'error': error
         })
@@ -170,7 +179,7 @@ async def join_team(
 
     if not team:
         error = 'Команда с таким кодом не найдена'
-        return templates.TemplateResponse('join_team.html', {
+        return templates.TemplateResponse('team/join_team.html', {
             'request': request,
             'error': error
         })
@@ -187,13 +196,43 @@ async def join_team(
     )
 
 
-@router.get('/{team_id}', response_model=TeamRead)
+# Маршруты для администраторов
+@router.get('/admin/all', response_model=list[TeamRead])
+async def get_all_teams(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role('admin')),
+    name: Optional[str] = Query(None, description='Фильтрация по названию команды'),
+    code: Optional[str] = Query(None, description='Филтрация по коду команды'),
+    limit: int = Query(10, ge=1, le=100, description='Количество записей'),
+    offset: int = Query(0, ge=0, description='Смещение')
+):
+    """
+    Получение списка всех команд
+    (доступно только админам)
+    """
+    stmt = select(Team)
+
+    if name:
+        stmt = stmt.where(Team.name.ilike(f'%{name}'))
+    if code:
+        stmt = stmt.where(Team.code.ilike(f'%{code}'))
+
+    stmt = stmt.limit(limit).offset(offset)
+
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+@router.get('/admin/{team_id}', response_model=TeamRead)
 async def get_team(
     team_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(require_role('admin'))
 ):
-    """Получение команды по id"""
+    """
+    Получение команды по id
+    (доступно только админам)
+    """
     team = await check_team(db, team_id, user)
     return team
 
