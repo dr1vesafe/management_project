@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, status, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
+from pydantic import ValidationError
 
 from src.app.auth.user_manager import get_user_manager, UserManager
 from src.app.schemas.user import UserCreate
@@ -13,6 +14,7 @@ templates = Jinja2Templates(directory='src/app/templates')
 
 @router.get('/login')
 async def login_page(request: Request):
+    """Страница для входа в аккаунт"""
     return templates.TemplateResponse('login.html', {'request': request, 'error': None})
 
 
@@ -23,6 +25,7 @@ async def login_submit(
     password: str = Form(...),
     user_manager: UserManager = Depends(get_user_manager)
 ):
+    """Аутентификация пользователя"""
     user = await user_manager.authenticate(OAuth2PasswordRequestForm(
         username=username,
         password=password,
@@ -44,6 +47,7 @@ async def login_submit(
 
 @router.get('/refresh')
 async def refresh_token(request: Request, user_manager = Depends(get_user_manager)):
+    """Генерация access токена с помощью refresh токена"""
     token = request.cookies.get('refresh_token')
     if not token:
         return RedirectResponse(url='/auth/login')
@@ -63,6 +67,7 @@ async def refresh_token(request: Request, user_manager = Depends(get_user_manage
 
 @router.get('/logout')
 async def logout():
+    """Выход из аккаунта"""
     response = RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)
     
     response.delete_cookie('access_token')
@@ -72,6 +77,7 @@ async def logout():
 
 @router.get('/register')
 async def register_page(request: Request):
+    """Страница регистрации"""
     return templates.TemplateResponse('register.html', {'request': request, 'error': None})
 
 
@@ -85,6 +91,7 @@ async def resgister_submit(
     password_confirm: str = Form(...),
     user_manager = Depends(get_user_manager)
 ):
+    """Регистрация пользователя"""
     if password != password_confirm:
         return templates.TemplateResponse(
             'register.html',
@@ -101,6 +108,14 @@ async def resgister_submit(
             )
         )
         return RedirectResponse(url='/auth/login', status_code=status.HTTP_303_SEE_OTHER)
+    
+    except ValidationError as e:
+        error_msg = '; '.join(err['msg'] for err in e.errors())
+        return templates.TemplateResponse(
+            'register.html',
+            {'request': request, 'error': error_msg}
+        )
+    
     except Exception as e:
         return templates.TemplateResponse(
             'register.html',

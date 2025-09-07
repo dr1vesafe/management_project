@@ -3,8 +3,6 @@ from sqladmin import Admin
 
 from .config import settings
 from .database import engine
-from src.app.auth.auth import fastapi_users
-from src.app.schemas.user import UserRead, UserCreate
 from src.app.routers import users, auth, tasks, teams, evaluations, meetings, index
 from src.app.admin import user, team, task, meeting, evaluation, meeting_participants
 

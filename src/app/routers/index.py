@@ -25,6 +25,7 @@ async def index(
     user: Optional[User] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    """Главная страница"""
     team = None
     tasks = []
     meetings = []
