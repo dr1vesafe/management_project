@@ -7,7 +7,7 @@
   <h2 class="mb-4">Оценки задачи: {{ task.title }}</h2>
 
   {% if user.role in ['manager', 'admin'] %}
-    <a href="/tasks/{{ task.id }}/evaluations/create" class="btn btn-primary mb-3">Добавить оценку</a>
+    <a href="/evaluations/task/{{ task.id }}/create" class="btn btn-primary mb-3">Добавить оценку</a>
   {% endif %}
 
   {% if evaluations %}

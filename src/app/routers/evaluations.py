@@ -1,8 +1,9 @@
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Form
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -51,6 +52,7 @@ async def evaluations_page(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    """Страница со списком оценок для задачи"""
     task_result = await db.execute(select(Task).where(Task.id == task_id))
     task = task_result.scalars().first()
     if not task:
@@ -80,25 +82,87 @@ async def evaluations_page(
     )
 
 
+@router.get('/task/{task_id}/create')
+async def create_evaluation_page(
+    task_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Страница создания оценки"""
+    task_result = await db.execute(select(Task).where(Task.id == task_id))
+    task = task_result.scalars().first()
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
+        )
+    
+    if task.team_id != user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
+        )
+    
+    return templates.TemplateResponse(
+        'evaluation/create_evaluation.html',
+        {'request': request, 'task': task, 'grades': list(EvaluationGrade), 'error': None}
+    )
+
+@router.post('/task/{task_id}/create')
+async def create_evalution_submit(
+    task_id: int,
+    request: Request,
+    grade: int = Form(...),
+    comment: str = Form(''),
+    db: AsyncSession = Depends(get_db),
+    manager: User = Depends(require_role('manager', 'admin'))
+):
+    """Создание оценки"""
+    task_result = await db.execute(select(Task).where(Task.id == task_id))
+    task = task_result.scalars().first()
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
+        )
+    
+    if task.team_id != manager.team_id and manager.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
+        )
+    
+    evaluation_data = EvaluationCreate(
+        task_id=task.id,
+        manager_id=manager.id,
+        user_id=task.performer_id,
+        grade=grade,
+        comment=comment
+    )
+    evaluation = await evaluation_crud.create_evaluation(db, evaluation_data)
+    await db.commit()
+    await db.refresh(evaluation)
+
+    return RedirectResponse(
+        url=f'/evaluations/task/{task.id}',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
 # Маршруты для администраторов
-@router.post('/', response_model=EvaluationRead)
+@router.post('/admin/create', response_model=EvaluationRead)
 async def create_evaluation(
     evaluation_data: EvaluationCreate,
     db: AsyncSession = Depends(get_db),
-    manager: User = Depends(require_role('manager', 'admin')),
+    manager: User = Depends(require_role('admin')),
 ):
     """
     Создание оценки
-    (доступно только менеджерам и админам)
+    (доступно только админам)
     """
     evaluation_task = await db.execute(select(Task).where(Task.id == evaluation_data.task_id))
     task = evaluation_task.scalars().first()
-    if task.team_id != manager.team_id and manager.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Невозможно давать оценки задачам не своей команды'
-        )
-    
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -113,12 +177,6 @@ async def create_evaluation(
             detail='Пользователь не найден'
         )
     
-    if user.team_id != manager.team_id and manager.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Невозможно давать оценки участникам других команд'
-        )
-    
     evaluation_data.manager_id = manager.id
     evaluation_data.user_id = task.performer_id
     evaluation = await evaluation_crud.create_evaluation(db, evaluation_data)
@@ -127,7 +185,7 @@ async def create_evaluation(
     return evaluation
 
 
-@router.get('/', response_model=list[EvaluationRead])
+@router.get('/admin/all', response_model=list[EvaluationRead])
 async def get_all_evaluations(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role('admin')),
@@ -164,65 +222,64 @@ async def get_all_evaluations(
     return result.scalars().all()
 
 
-@router.get('/{evaluation_id}', response_model=EvaluationRead)
+@router.get('/admin/{evaluation_id}', response_model=EvaluationRead)
 async def get_evaluation_by_id(
     evaluation_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(require_role('admin'))
 ):
-    """Получение оценки по id"""
+    """
+    Получение оценки по id
+    (доступно только админам)
+    """
     evaluation = await check_evaluation(db, evaluation_id, user)
 
     return evaluation
 
 
-@router.get('/task/{task_id}', response_model=list[EvaluationRead])
+@router.get('/admin/task/{task_id}', response_model=list[EvaluationRead])
 async def get_evaluations_by_task(
     task_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role('admin')),
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
-    """Получить оценки для задачи"""
+    """
+    Получить оценки для задачи
+    (доступно только админам)
+    """
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalars().first()
-    if user.team_id != task.team_id and user.role != 'admin':
-        raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN,
-            detail = 'Недостаточно прав'
-        )
-    
     stmt = select(Evaluation).where(Evaluation.task_id == task_id).limit(limit).offset(offset)
     result = await db.execute(stmt)
     return result.scalars().all()
 
 
-@router.put('/{evaluation_id}', response_model=EvaluationRead)
+@router.put('/admin/{evaluation_id}', response_model=EvaluationRead)
 async def update_evaluation(
     evaluation_id: int,
     evaluation_data: EvaluationUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """
     Изменение оценки
-    (доступно только менеджерам и админам)
+    (доступно только админам)
     """
     evaluation = await check_evaluation(db, evaluation_id, user)
-    
     return await evaluation_crud.update_evaluation(db, evaluation, evaluation_data)
 
 
-@router.delete('/{evaluation_id}')
+@router.delete('/admin/{evaluation_id}')
 async def delete_evaluation(
     evaluation_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """
     Удаление оценки
-    (доступно только менеджерам и админам)
+    (доступно только админам)
     """
     evaluation = await check_evaluation(db, evaluation_id, user)
     
@@ -230,13 +287,15 @@ async def delete_evaluation(
     return {'detail': f'Оценка {evaluation_id} удалена'}
 
 
-@router.get('/average/user/{user_id}')
+@router.get('/admin/average/user/{user_id}')
 async def get_average_grade_by_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role('manager', 'admin'))
+    _: User = Depends(require_role('admin'))
 ):
-    """Получить среднюю оценку пользователя"""
+    """
+    Получить среднюю оценку пользователя
+    (доступно только админам)"""
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
@@ -245,28 +304,19 @@ async def get_average_grade_by_user(
             detail='Пользователь не найден'
         )
     
-    if current_user.team_id != user.team_id and current_user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Недостаточно прав'
-        )
-    
     avg = await evaluation_service.get_average_by_user(db, user_id)
     return {'user_id': user_id, 'average_grade': avg}
 
 
-@router.get("/average/team/{team_id}")
+@router.get("/admin/average/team/{team_id}")
 async def average_grade_team(
     team_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role('manager', 'admin'))
+    _: User = Depends(require_role('admin'))
 ):
-    """Получить среднню оценку команды"""
-    if current_user.team_id != team_id and current_user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Недостаточно прав'
-        )
-    
+    """
+    Получить среднню оценку команды
+    (доступно только админам)
+    """
     avg = await evaluation_service.get_average_grade_by_team(db, team_id)
     return {"team_id": team_id, "average_grade": avg}

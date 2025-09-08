@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Добавить оценку{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">Добавить оценку для задачи: {{ task.title }}</h2>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <form method="post">
+    <div class="mb-3">
+      <label for="grade" class="form-label">Оценка</label>
+      <select name="grade" id="grade" class="form-select" required>
+        <option value="">Выберите оценку</option>
+        {% for g in grades %}
+          <option value="{{ g.value }}">{{ g.value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="comment" class="form-label">Комментарий (необязательно)</label>
+      <textarea name="comment" id="comment" class="form-control" rows="3"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Добавить оценку</button>
+    <a href="/tasks/{{ task.id }}/evaluations" class="btn btn-secondary">Отмена</a>
+  </form>
+</div>
+{% endblock %}
