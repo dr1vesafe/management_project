@@ -1,9 +1,10 @@
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from src.app.schemas.meeting import MeetingRead, MeetingCreate, MeetingUpdate
@@ -12,8 +13,11 @@ from src.app.services import meeting_crud
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.models.user import User
 from src.app.models.meeting import Meeting
+from src.app.models.meeting_participants import MeetingParticipant
 
 router = APIRouter(prefix='/meetings', tags=['meetings'])
+templates = Jinja2Templates(directory='src/app/templates')
+
 
 
 async def check_meeting(
@@ -38,15 +42,68 @@ async def check_meeting(
     return meeting
 
 
-@router.post('/', response_model=MeetingRead)
+# Маршруты для пользователей
+@router.get('/')
+async def meetings_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    status: Optional[str] = Query(None, regex='^(past|upcoming)?$'),
+    my_meetings: bool = Query(False),
+    page: int = Query(1, ge=1)
+):
+    """Страница со встречами команды"""
+    limit = 10
+    offset = (page - 1) * limit
+
+    query = select(Meeting).options(selectinload(Meeting.participants).selectinload(MeetingParticipant.user))
+    count_query = select(func.count(Meeting.id))
+
+    query = query.where(Meeting.team_id == user.team_id)
+    count_query = count_query.where(Meeting.team_id == user.team_id)
+
+    now = datetime.utcnow()
+
+    if status == 'past':
+        query = query.where(Meeting.scheduled_at < now)
+        count_query = count_query.where(Meeting.scheduled_at < now)
+    elif status == 'upcoming':
+        query = query.where(Meeting.scheduled_at >= now)
+        count_query = count_query.where(Meeting.scheduled_at >= now)
+
+    if my_meetings:
+        query = query.join(MeetingParticipant).where(MeetingParticipant.user_id == user.id)
+        count_query = count_query.join(MeetingParticipant).where(MeetingParticipant.user_id == user.id)
+
+    total_meetings = await db.scalar(count_query)
+    total_pages = max((total_meetings + limit - 1) // limit, 1)
+
+    meetings = (await db.execute(query.offset(offset).limit(limit))).scalars().all()
+
+    return templates.TemplateResponse(
+        'meeting/meetings.html',
+        {
+            'request': request,
+            'meetings': meetings,
+            'status': status or '',
+            'my_meetings': my_meetings,
+            'page': page,
+            'total_pages': total_pages,
+            'user': user
+        }
+    )
+
+
+# Маршруты для администраторов
+@router.post('/admin/create', response_model=MeetingRead)
 async def create_meeting(
     meeting_data: MeetingCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """
     Создать встречу
-    (доступно только менеджерам и админам)
+    (доступно только админам)
     """
     if meeting_data.team_id:
         if user.team_id != meeting_data.team_id and user.role != 'admin':
@@ -58,7 +115,7 @@ async def create_meeting(
     return await meeting_crud.create_meeting(db, meeting_data, user)
 
 
-@router.get('/all', response_model=list[MeetingRead])
+@router.get('/admin/all', response_model=list[MeetingRead])
 async def get_all_meetings(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role('admin')),
@@ -89,11 +146,11 @@ async def get_all_meetings(
     return result.scalars().all()
 
 
-@router.get('/{meeting_id}', response_model=MeetingRead)
+@router.get('/admin/{meeting_id}', response_model=MeetingRead)
 async def get_meeting_by_id(
     meeting_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(require_role('admin'))
 ):
     """Получить встречу по id"""
     meeting = await check_meeting(db, meeting_id, user)
@@ -101,11 +158,11 @@ async def get_meeting_by_id(
     return meeting
 
 
-@router.get('/', response_model=list[MeetingRead])
+@router.get('/admin/{team_id}', response_model=list[MeetingRead])
 async def get_meetings_by_team(
+    team_id: int,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-    team_id: Optional[int] = Query(None, description='id команды'),
     organizer_id: Optional[int] = Query(None, description='Фильтрация по организатору'),
     scheduled_before: Optional[datetime] = Query(None, description='Встречи до даты'),
     scheduled_after: Optional[datetime] = Query(None, description='Встречи после даты'),
@@ -113,20 +170,6 @@ async def get_meetings_by_team(
     offset: int = Query(0, ge=0, description='Смещение'),
 ):
     """Получить встречи для команды"""
-    if not team_id:
-        if not user.team_id:
-            raise HTTPException(
-                status_code = status.HTTP_400_BAD_REQUEST,
-                detail = 'Пользователь должен состоять в команде'
-            )
-        team_id = user.team_id
-    
-    if user.team_id != team_id and user.role != 'admin':
-        raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN,
-            detail = 'Недостаточно прав'
-        )
-    
     stmt = select(Meeting).options(selectinload(Meeting.participants)).where(Meeting.team_id == team_id)
 
     if organizer_id:
@@ -146,11 +189,11 @@ async def update_meeting(
     meeting_id: int,
     meeting_data: MeetingUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin')),
+    user: User = Depends(require_role('admin')),
 ):
     """
     Изменить встречу по id
-    (доступно только менеджерам и админам)
+    (доступно толькои админам)
     """
     meeting = await check_meeting(db, meeting_id, user)
     
@@ -161,11 +204,11 @@ async def update_meeting(
 async def delete_meeting(
     meeting_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin')),
+    user: User = Depends(require_role('admin')),
 ):
     """
     Удалить встречу по id
-    (доступно только менеджерам и админам)
+    (доступно только админам)
     """
     meeting = await check_meeting(db, meeting_id, user)
     

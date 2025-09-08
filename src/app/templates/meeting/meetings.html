@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Встречи команды{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">Встречи команды</h2>
+
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <label for="status" class="form-label">Статус встречи</label>
+      <select name="status" id="status" class="form-select">
+        <option value="" {% if status == '' %}selected{% endif %}>Все</option>
+        <option value="upcoming" {% if status == 'upcoming' %}selected{% endif %}>Будущие</option>
+        <option value="past" {% if status == 'past' %}selected{% endif %}>Прошедшие</option>
+      </select>
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="my_meetings" id="my_meetings" {% if my_meetings %}checked{% endif %}>
+        <label class="form-check-label" for="my_meetings">Мои встречи</label>
+      </div>
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary">Применить</button>
+    </div>
+
+    {% if user.role in ['manager', 'admin'] %}
+      <div class="col-md-3 d-flex align-items-end">
+        <a href="/meetings/create" class="btn btn-success">Создать встречу</a>
+      </div>
+    {% endif %}
+  </form>
+
+  {% if meetings %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Название</th>
+          <th>Организатор</th>
+          <th>Дата и время</th>
+          <th>Участники</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for meeting in meetings %}
+        <tr>
+          <td><a href="/meetings/{{ meeting.id }}">{{ meeting.title }}</a></td>
+          <td>{{ meeting.organizer.first_name }} {{ meeting.organizer.last_name }}</td>
+          <td>{{ meeting.scheduled_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>
+            {% for participant in meeting.participants %}
+              {{ participant.user.first_name }} {{ participant.user.last_name }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="alert alert-info">Встречи не найдены</div>
+  {% endif %}
+
+  <nav>
+    <ul class="pagination">
+      {% for p in range(1, total_pages + 1) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+          <a class="page-link" href="?page={{ p }}{% if status %}&status={{ status }}{% endif %}{% if my_meetings %}&my_meetings=true{% endif %}">
+            {{ p }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+</div>
+{% endblock %}

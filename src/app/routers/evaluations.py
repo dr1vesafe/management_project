@@ -187,6 +187,7 @@ async def edit_evaluation_submit(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('manager', 'admin'))
 ):
+    """Изменение оценки"""
     result = await db.execute(select(Evaluation).where(Evaluation.id == evaluation_id).options(selectinload(Evaluation.task)))
     evaluation = result.scalars().first()
     if not evaluation:
@@ -220,6 +221,7 @@ async def delete_evaluation_submit(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('manager', 'admin'))
 ):
+    """Удаление оценки"""
     result = await db.execute(select(Evaluation).where(Evaluation.id == evaluation_id).options(selectinload(Evaluation.task)))
     evaluation = result.scalars().first()
     if not evaluation:
