@@ -31,7 +31,7 @@ async def profile_page(
     if not user:
         return templates.TemplateResponse('login.html', {'request': request, 'error': 'Войдите в аккаунт'})
     
-    avg_grade = await evaluation_service.get_average_by_user(db, user.id)
+    avg_grade = round(await evaluation_service.get_average_by_user(db, user.id), 1)
     return templates.TemplateResponse('profile/profile.html', {
         'request': request,
         'user': user,

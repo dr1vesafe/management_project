@@ -150,6 +150,70 @@ async def create_evalution_submit(
     )
 
 
+@router.get('/{evaluation_id}/edit')
+async def edit_evaluation_page(
+    evaluation_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Страница изменения оценки"""
+    result = await db.execute(select(Evaluation).where(Evaluation.id == evaluation_id).options(selectinload(Evaluation.task)))
+    evaluation = result.scalars().first()
+    if not evaluation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Оценка не найдена'
+        )
+    
+    if evaluation.task.team_id != user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Оценка не найдена'
+        )
+
+    return templates.TemplateResponse(
+        'evaluation/edit_evaluation.html',
+        {'request': request, "evaluation": evaluation, 'grades': list(EvaluationGrade), 'error': None, 'user': user}
+    )
+
+
+@router.post('/{evaluation_id}/edit')
+async def edit_evaluation_submit(
+    evaluation_id: int,
+    request: Request,
+    grade: int = Form(...),
+    comment: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    result = await db.execute(select(Evaluation).where(Evaluation.id == evaluation_id).options(selectinload(Evaluation.task)))
+    evaluation = result.scalars().first()
+    if not evaluation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Оценка не найдена'
+        )
+    
+    if evaluation.task.team_id != user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Оценка не найдена'
+        )
+
+    evaluation_data = EvaluationUpdate(
+        grade=EvaluationGrade(grade),
+        comment=comment
+    )
+
+    await evaluation_crud.update_evaluation(db, evaluation, evaluation_data)
+
+    return RedirectResponse(
+        url=f'/evaluations/task/{evaluation.task_id}',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
 # Маршруты для администраторов
 @router.post('/admin/create', response_model=EvaluationRead)
 async def create_evaluation(

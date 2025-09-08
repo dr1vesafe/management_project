@@ -201,7 +201,7 @@ async def team_page(
         key=lambda m: role_order.get(m.role.name if m.role else 'user', 99)
     )
 
-    avg_grade = await evaluation_service.get_average_grade_by_team(db, team_id)
+    avg_grade = round(await evaluation_service.get_average_grade_by_team(db, team_id), 1)
     return templates.TemplateResponse(
         'team/team.html',
         {'request': request, 'team': team, 'members': members, 'user': user, 'avg_grade': avg_grade or 0.0}

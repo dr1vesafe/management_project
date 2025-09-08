@@ -31,6 +31,15 @@
           <td>{{ eval.grade.value }}</td>
           <td>{{ eval.comment or '-' }}</td>
           <td>{{ eval.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          {% if user.role in ['manager', 'admin'] %}
+          <td>
+            <a href="/evaluations/{{ eval.id }}/edit" class="btn btn-sm btn-primary">Изменить</a>
+            <form action="/evaluations/{{ eval.id }}/delete" method="post" class="d-inline"
+                  onsubmit="return confirm('Вы уверены, что хотите удалить оценку?');">
+              <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+            </form>
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>
