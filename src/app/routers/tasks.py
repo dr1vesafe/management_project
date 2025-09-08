@@ -1,9 +1,11 @@
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, Request
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 
 from src.app.schemas.task import TaskRead, TaskCreate, TaskUpdate
 from src.app.database import get_db
@@ -13,6 +15,7 @@ from src.app.models.task import TaskStatus, Task
 from src.app.services import task_crud, task_service
 
 router = APIRouter(prefix='/tasks', tags=['tasks'])
+templates = Jinja2Templates(directory='src/app/templates')
 
 
 async def check_task(
@@ -35,6 +38,55 @@ async def check_task(
         )
     
     return task
+
+
+@router.get('/')
+async def tasks_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    status: Optional[str] = Query(None),
+    my_tasks: bool = Query(False)
+):
+    """Страница со списком задач"""
+    limit = 10
+    offset = (page - 1) * limit
+    query = select(Task).where(Task.team_id == user.team_id).options(selectinload(Task.performer))
+    count_query = select(func.count(Task.id)).where(Task.team_id == user.team_id)
+    status_enum = None
+    if status:
+        try:
+            status_enum = TaskStatus(status)
+        except ValueError:
+            status_enum = None
+    
+    if status_enum:
+        query = query.where(Task.status == status_enum)
+        count_query = count_query.where(Task.status == status_enum)
+    
+    if my_tasks:
+        query = query.where(Task.performer_id == user.id)
+        count_query = count_query.where(Task.performer_id == user.id)
+
+    total_tasks = await db.scalar(count_query)
+    total_pages = max((total_tasks + limit - 1) // limit, 1)
+
+    query = query.offset(offset).limit(limit)
+    tasks = (await db.execute(query)).scalars().all()
+
+    return templates.TemplateResponse(
+        'task/tasks.html',
+        {
+            'request': request,
+            'tasks': tasks,
+            'page': page,
+            'total_pages': total_pages,
+            'status': status or '',
+            'my_tasks': my_tasks,
+            'user': user
+        }
+    )
 
 
 @router.post('/', response_model=TaskRead)

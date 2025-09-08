@@ -35,7 +35,7 @@ async def index(
         team_result = await db.execute(select(Team).where(Team.id == user.team_id))
         team = team_result.scalars().first()
 
-        tasks_result = await db.execute(select(Task).where(Task.performer_id == user.id))
+        tasks_result = await db.execute(select(Task).where(Task.performer_id == user.id, Task.status.in_(['open', 'in_progress'])))
         tasks = tasks_result.scalars().all()
 
         current_date = datetime.utcnow()
