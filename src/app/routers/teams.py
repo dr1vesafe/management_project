@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from src.app.schemas.team import TeamRead, TeamCreate, TeamUpdate, JoinTeamRequest
 from src.app.database import get_db
 from src.app.models.user import User
-from src.app.models.team import Team
+from src.app.models.team import Team, generate_team_code
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.services import team_crud
 
@@ -101,11 +101,16 @@ async def leave_team(
         )
     
     user = await db.merge(current_user)
+    team = await check_team(db, user.team_id, user)
+
     user.team_id = None
     if user.role == 'manager':
         user.role = 'user'
 
+    team.code = generate_team_code()
+
     db.add(user)
+    db.add(team)
     await db.commit()
     return RedirectResponse(
         url="/?message=Вы%20успешно%20покинули%20команду",
@@ -264,6 +269,22 @@ async def delete_team_submit(
     return RedirectResponse(url='/?message=Команда%20успешно%20удалена', status_code=status.HTTP_303_SEE_OTHER)
 
 
+@router.post('/{team_id}/code')
+async def change_team_code_submit(
+    team_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Генерация нового кода команды"""
+    team = await check_team(db, team_id, user)
+    team.code = generate_team_code()
+
+    db.add(team)
+    await db.commit()
+
+    return RedirectResponse(url=f'/teams/{team_id}', status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.post('/{team_id}/users/{user_id}/remove')
 async def remove_user_from_team_submit(
     team_id: int,
@@ -298,8 +319,12 @@ async def remove_user_from_team_submit(
             detail='Пользователь не состоит в этой команде'
         )
     
+    team = await check_team(db, team_id, user)
+    team.code = generate_team_code()
+    
     user.team_id = None
     db.add(user)
+    db.add(team)
     await db.commit()
     
     return RedirectResponse(url=f'/teams/{team_id}', status_code=status.HTTP_303_SEE_OTHER)

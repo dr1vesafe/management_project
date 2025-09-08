@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.app.database import Base
 
 
-def generate_team_code(length: int = 6) -> str:
+def generate_team_code(length: int = 8) -> str:
     """Автоматическая генерация случайного кода команды"""
     alphabet = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(length))

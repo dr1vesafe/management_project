@@ -6,7 +6,6 @@
 <body>
 <div class="container mt-5">
   <h2 class="mb-4">Команда: {{ team.name }}</h2>
-
   {% if members %}
     <div class="list-group">
       {% for member in members %}
@@ -42,11 +41,14 @@
   {% else %}
     <p>В команде пока нет участников.</p>
   {% endif %}
-
+  <h5 class="mb-4">Код: {{ team.code }}</h5>
   <div class="d-flex gap-2 mt-4">
     <a href="/" class="btn btn-secondary">Назад на главную</a>
     {% if user.role == "manager" or user.role == "admin" %}
     <a href="/teams/{{ team.id }}/edit" class="btn btn-primary">Изменить команду</a>
+    <form action="/teams/{{ team.id }}/code" method="post" onsubmit="return confirm('Вы уверены, что хотите изменить код?');">
+      <button type="submit" class="btn btn-primary">Сгенерировать новый код</button>
+    </form>
     <form action="/teams/{{ team.id }}/delete" method="post" onsubmit="return confirm('Вы уверены, что хотите удалить команду?');">
       <button type="submit" class="btn btn-danger">Удалить команду</button>
     </form>
