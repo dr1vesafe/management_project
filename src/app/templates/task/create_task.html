@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Создать задачу{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">Создать задачу</h2>
+
+  <form method="post">
+    <div class="mb-3">
+      <label for="title" class="form-label">Название задачи</label>
+      <input type="text" class="form-control" id="title" name="title" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="description" class="form-label">Описание задачи</label>
+      <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label for="performer_id" class="form-label">Исполнитель</label>
+      <select class="form-select" id="performer_id" name="performer_id" required>
+        {% for performer in performers %}
+        <option value="{{ performer.id }}">{{ performer.first_name }} {{ performer.last_name }} | {{ performer.email }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="deadline" class="form-label">Дедлайн</label>
+        <input type="datetime-local" class="form-control" id="deadline" name="deadline">
+        <small class="form-text text-muted">Выберите дату и время завершения задачи</small>
+    </div>
+    <button type="submit" class="btn btn-primary">Создать</button>
+    <a href="/tasks" class="btn btn-secondary">Отмена</a>
+  </form>
+</div>
+{% endblock %}

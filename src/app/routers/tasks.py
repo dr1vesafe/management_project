@@ -3,6 +3,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, Request, Form
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -88,6 +89,49 @@ async def tasks_page(
             'user': user
         }
     )
+
+
+@router.get('/create')
+async def create_task_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Страница создания задачи"""
+    performers = (await db.execute(select(User).where(User.team_id == user.team_id))).scalars().all()
+    return templates.TemplateResponse(
+        'task/create_task.html', {'request': request, 'performers': performers, 'user': user}
+    )
+
+@router.post('/create')
+async def create_task_submit(
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(...),
+    performer_id: int = Form(...),
+    deadline: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+    ):
+    """Создание задачи"""
+    deadline_date = None
+    if deadline:
+        try:
+            deadline_date = datetime.strptime(deadline, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            pass
+
+    task_data = TaskCreate(
+        title=title,
+        description=description,
+        performer_id=performer_id,
+        status='open',
+        deadline_date=deadline_date,
+        team_id=user.team_id
+    )
+    await task_crud.create_task(db, task_data)
+    
+    return RedirectResponse(url='/tasks', status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get('/{task_id}')

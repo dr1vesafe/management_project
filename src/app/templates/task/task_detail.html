@@ -7,6 +7,13 @@
 <div class="container mt-5">
     <h2>{{ task.title }}</h2>
     <p><strong>Описание:</strong> {{ task.description }}</p>
+    <p><strong>Дедлайн:</strong>
+    {% if task.deadline_date %}
+        {{ task.deadline_date }}
+    {% else %}
+        Не назначен
+    {% endif %}
+    </p>
     <p><strong>Статус:</strong> {{ task.status.value }}</p>
     <p><strong>Исполнитель:</strong> 
         {% if task.performer %}

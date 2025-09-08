@@ -71,6 +71,9 @@
   </nav>
 
   <a href="/" class="btn btn-secondary mt-4">Назад</a>
+  {% if user and (user.role.value == 'manager' or user.role.value == 'admin') %}
+    <a href="/tasks/create" class="btn btn-success mt-4">Создать задачу</a>
+  {% endif %}
 </div>
 </body>
 {% endblock %}
