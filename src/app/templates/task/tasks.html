@@ -42,8 +42,12 @@
         {% for task in tasks %}
         <tr>
           <td>{{ task.id }}</td>
-          <td>{{ task.title }}</td>
-          <td>{{ task.performer if task.performer else "—" }}</td>
+          <td>
+            <a href="/tasks/{{ task.id }}" class="text-decoration-none">
+                {{ task.title }}
+            </a>
+          </td>
+          <td>{{ task.performer.first_name }} {{ task.performer.last_name }} | {{ task.performer.email }}</td>
           <td>{{ task.status.value }}</td>
         </tr>
         {% endfor %}
@@ -69,5 +73,4 @@
   <a href="/" class="btn btn-secondary mt-4">Назад</a>
 </div>
 </body>
-</html>
 {% endblock %}

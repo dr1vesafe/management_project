@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Список задач{% endblock %}
+
+{% block content %}
+<body>
+<div class="container mt-5">
+    <h2>{{ task.title }}</h2>
+    <p><strong>Описание:</strong> {{ task.description }}</p>
+    <p><strong>Статус:</strong> {{ task.status.value }}</p>
+    <p><strong>Исполнитель:</strong> 
+        {% if task.performer %}
+            {{ task.performer.first_name }} {{ task.performer.last_name }} | {{ task.performer.email }}
+        {% else %}
+            Не назначен
+        {% endif %}
+    </p>
+
+    {% if can_change_status %}
+    <form method="post" action="/tasks/{{ task.id }}/status" class="mb-3">
+        <label for="new_status" class="form-label">Изменить статус</label>
+        <select name="new_status" id="new_status" class="form-select mb-2" required>
+            <option value="open" {% if task.status.value == "open" %}selected{% endif %}>Открыта</option>
+            <option value="in_progress" {% if task.status.value == "in_progress" %}selected{% endif %}>В процессе</option>
+            <option value="done" {% if task.status.value == "done" %}selected{% endif %}>Выполнена</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+    </form>
+    {% endif %}
+
+    <a href="/evaluations/task/{{ task.id }}" class="btn btn-secondary">Оценки задачи</a>
+    <a href="/tasks" class="btn btn-outline-secondary">Назад к задачам</a>
+
+    {% if message %}
+        <div class="alert alert-success mt-3">{{ message }}</div>
+    {% endif %}
+</div>
+</body>
+{% endblock %}
