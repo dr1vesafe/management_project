@@ -1,9 +1,11 @@
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.app.schemas.evaluation import EvaluationRead, EvaluationCreate, EvaluationUpdate
 from src.app.database import get_db
@@ -14,6 +16,7 @@ from src.app.models.evaluation import Evaluation, EvaluationGrade
 from src.app.services import evaluation_crud, evaluation_service
 
 router = APIRouter(prefix='/evaluations', tags=['evaluations'])
+templates = Jinja2Templates(directory='src/app/templates')
 
 
 async def check_evaluation(
@@ -40,6 +43,44 @@ async def check_evaluation(
     return evaluation
 
 
+# Маршруты для пользователей
+@router.get('/task/{task_id}')
+async def evaluations_page(
+    task_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    task_result = await db.execute(select(Task).where(Task.id == task_id))
+    task = task_result.scalars().first()
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
+        )
+    
+    if task.team_id != user.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
+        )
+    
+    evaluations_result = await db.execute(
+        select(Evaluation).where(Evaluation.task_id == task_id)
+        .options(
+            selectinload(Evaluation.manager),
+            selectinload(Evaluation.user)
+        )
+    )
+    evaluations = evaluations_result.scalars().all()
+
+    return templates.TemplateResponse(
+        'evaluation/evaluations.html',
+        {'request': request, 'task': task, 'evaluations': evaluations, 'user': user}
+    )
+
+
+# Маршруты для администраторов
 @router.post('/', response_model=EvaluationRead)
 async def create_evaluation(
     evaluation_data: EvaluationCreate,

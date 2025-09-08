@@ -12,7 +12,7 @@ from src.app.database import get_db
 from src.app.models.user import User
 from src.app.models.team import Team, generate_team_code
 from src.app.auth.dependencies import get_current_user, require_role
-from src.app.services import team_crud
+from src.app.services import team_crud, evaluation_service
 
 
 router = APIRouter(prefix='/teams', tags=['teams'])
@@ -201,9 +201,10 @@ async def team_page(
         key=lambda m: role_order.get(m.role.name if m.role else 'user', 99)
     )
 
+    avg_grade = await evaluation_service.get_average_grade_by_team(db, team_id)
     return templates.TemplateResponse(
         'team/team.html',
-        {'request': request, 'team': team, 'members': members, 'user': user}
+        {'request': request, 'team': team, 'members': members, 'user': user, 'avg_grade': avg_grade or 0.0}
     )
 
 

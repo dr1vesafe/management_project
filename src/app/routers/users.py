@@ -13,6 +13,7 @@ from src.app.models.user import User, UserRole
 from src.app.schemas.user import UserRead, UserUpdate, ChangePassword
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.auth.user_manager import get_user_manager, UserManager
+from src.app.services import evaluation_service
 
 router = APIRouter(prefix='/users', tags=['users'])
 templates = Jinja2Templates(directory='src/app/templates')
@@ -20,12 +21,23 @@ templates = Jinja2Templates(directory='src/app/templates')
 
 # Маршруты для пользователей
 @router.get('/profile')
-async def profile_page(request: Request, user: User = Depends(get_current_user), message: Optional[str] = None):
+async def profile_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    message: Optional[str] = None
+):
     """Страница профиля пользователя"""
     if not user:
         return templates.TemplateResponse('login.html', {'request': request, 'error': 'Войдите в аккаунт'})
     
-    return templates.TemplateResponse('profile/profile.html', {'request': request, 'user': user, 'message': message})
+    avg_grade = await evaluation_service.get_average_by_user(db, user.id)
+    return templates.TemplateResponse('profile/profile.html', {
+        'request': request,
+        'user': user,
+        'message': message,
+        'avg_grade': avg_grade or 0.0
+        })
 
 
 @router.get('/profile/edit')

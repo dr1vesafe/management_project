@@ -6,6 +6,7 @@
 <body>
 <div class="container mt-5">
   <h2 class="mb-4">Команда: {{ team.name }}</h2>
+  <h5 class="mb-4">Средняя оценка команды: {{ avg_grade }}</h5>
   {% if members %}
     <div class="list-group">
       {% for member in members %}

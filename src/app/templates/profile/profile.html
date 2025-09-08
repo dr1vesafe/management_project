@@ -16,6 +16,7 @@
       <p><strong>Фамилия:</strong> {{ user.last_name or "-" }}</p>
       <p><strong>Email:</strong> {{ user.email }}</p>
       <p><strong>Роль:</strong> {{ user.role.value }}</p>
+      <p><strong>Средняя оценка:</strong> {{ avg_grade }}</p>
       <p>  
         {% if user.team_id %}
           <a href="/teams/{{ user.team_id }}">Перейти к команде</a>

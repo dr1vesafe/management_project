@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Оценки задачи{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">Оценки задачи: {{ task.title }}</h2>
+
+  {% if user.role in ['manager', 'admin'] %}
+    <a href="/tasks/{{ task.id }}/evaluations/create" class="btn btn-primary mb-3">Добавить оценку</a>
+  {% endif %}
+
+  {% if evaluations %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Менеджер</th>
+          <th>Исполнитель</th>
+          <th>Оценка</th>
+          <th>Комментарий</th>
+          <th>Дата</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for eval in evaluations %}
+        <tr>
+          <td>{{ eval.id }}</td>
+          <td>{{ eval.manager.first_name }} {{ eval.manager.last_name }} | {{ eval.manager.email }}</td>
+          <td>{{ eval.user.first_name }} {{ eval.user.last_name }} | {{ eval.user.email }}</td>
+          <td>{{ eval.grade.value }}</td>
+          <td>{{ eval.comment or '-' }}</td>
+          <td>{{ eval.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="alert alert-info">Оценок пока нет.</div>
+  {% endif %}
+
+  <a href="/tasks/{{ task.id }}" class="btn btn-secondary mt-3">Назад к задаче</a>
+</div>
+{% endblock %}
