@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, Request, Form
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -132,6 +132,60 @@ async def task_detail_page(
     )
 
 
+@router.post('/{task_id}/status')
+async def update_task_status(
+    task_id: int,
+    request: Request,
+    new_status: TaskStatus = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """Изменение статуса задачи"""
+    result = await db.execute(
+        select(Task)
+        .where(Task.id == task_id)
+        .options(selectinload(Task.performer))
+    )
+    task = result.scalars().first()
+
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
+        )
+    
+    if user.team_id != task.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
+        )
+
+    if not (
+        user.id == task.performer_id
+        or user.role in ('manager', 'admin')
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            deatil='Недостаточно прав'
+        )
+    
+    task.status = new_status
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    return templates.TemplateResponse(
+        'task/task_detail.html',
+        {
+            'request': request,
+            'task': task,
+            'can_change_status': True,
+            'message': 'Статус задачи обновлен',
+            'user': user
+        }
+    )
+
+
 # Маршруты для администраторов
 @router.post('/admin/create', response_model=TaskRead)
 async def create_task(
@@ -257,17 +311,3 @@ async def delete_task(
     
     await task_crud.delete_task(db, task)
     return {'detail': f'Задача {task_id} удалена'}
-
-
-@router.patch('/{task_id}/status', response_model=TaskRead)
-async def update_task_status(
-    task_id: int,
-    new_status: TaskStatus = Body(..., embed=True),
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user)
-):
-    """Изменить статус задачи"""
-    task = await check_task(db, task_id, user)
-
-    task = await task_service.change_task_status(db, task, new_status, user)
-    return task
