@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Создать встречу{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">Создать встречу</h2>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <form method="post">
+    <div class="mb-3">
+      <label for="title" class="form-label">Название</label>
+      <input type="text" class="form-control" id="title" name="title" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="description" class="form-label">Описание</label>
+      <textarea class="form-control" id="description" name="description"></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label for="scheduled_at" class="form-label">Дата и время</label>
+      <input type="datetime-local" class="form-control" id="scheduled_at" name="scheduled_at" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Участники</label>
+      <div class="form-check">
+        <input type="checkbox" class="form-check-input" id="all_team" name="add_all_team" value="true">
+        <label class="form-check-label" for="all_team">Вся команда</label>
+      </div>
+      <hr>
+      {% for member in team_members %}
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" id="user_{{ member.id }}" name="participant_ids" value="{{ member.id }}">
+          <label class="form-check-label" for="user_{{ member.id }}">{{ member.first_name }} {{ member.last_name }} | {{ member.email }}</label>
+        </div>
+      {% endfor %}
+    </div>
+
+    <input type="hidden" name="team_id" value="{{ user.team_id }}">
+
+    <button type="submit" class="btn btn-primary">Создать встречу</button>
+    <a href="/meetings" class="btn btn-secondary">Отмена</a>
+  </form>
+</div>
+{% endblock %}

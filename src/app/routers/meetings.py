@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Form
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -94,6 +95,70 @@ async def meetings_page(
     )
 
 
+@router.get('/create')
+async def create_meeting_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Страница создания встречи"""
+    result = await db.execute(select(User).where(User.team_id == user.team_id))
+    team_members = result.scalars().all()
+
+    return templates.TemplateResponse(
+        'meeting/create_meeting.html',
+        {
+            'request': request,
+            'error': None,
+            'user': user,
+            'team_members': team_members
+        }
+    )
+
+
+@router.post('/create')
+async def create_meeting_submit(
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(""),
+    scheduled_at: str = Form(...),
+    team_id: int = Form(...),
+    participant_ids: list[int] = Form(default=[]),
+    add_all_team: bool = Form(False),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Создать встречу"""
+    try:
+        scheduled_dt = datetime.fromisoformat(scheduled_at)
+    except ValueError:
+        return templates.TemplateResponse(
+            'meeting/create_meeting.html',
+            {'request': request, 'error': 'Неверный формат даты/времени', 'user': user}
+        )
+    meeting_data = MeetingCreate(
+        title=title,
+        description=description,
+        scheduled_at=scheduled_dt,
+        team_id=team_id,
+        participants_id=participant_ids,
+        add_team_members=add_all_team
+    )
+
+    if meeting_data.team_id and user.team_id != meeting_data.team_id and user.role != 'admin':
+        return templates.TemplateResponse(
+            'meeting/create_meeting.html',
+            {'request': request, 'error': 'Недостаточно прав для создания встречи в этой команде', 'user': user}
+        )
+
+    meeting = await meeting_crud.create_meeting(db, meeting_data, user)
+
+    return RedirectResponse(
+        url=f'/meetings',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
 # Маршруты для администраторов
 @router.post('/admin/create', response_model=MeetingRead)
 async def create_meeting(
@@ -105,13 +170,6 @@ async def create_meeting(
     Создать встречу
     (доступно только админам)
     """
-    if meeting_data.team_id:
-        if user.team_id != meeting_data.team_id and user.role != 'admin':
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail='Недостаточно прав'
-            )
-    
     return await meeting_crud.create_meeting(db, meeting_data, user)
 
 
