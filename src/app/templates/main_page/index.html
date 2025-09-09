@@ -44,7 +44,13 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title">Задачи</h5>
-                    <p class="card-text">Всего задач: <strong>{{ tasks|length }}</strong></p>
+                    <p class="card-text">Всего задач: <strong>
+                    {% if tasks and user.team_id %}
+                        {{ tasks|length }}
+                    {% else %}
+                        0
+                    {% endif %}
+                    </strong></p>
                     <a href="/tasks" class="btn btn-primary btn-sm">Подробнее</a>
                 </div>
             </div>
@@ -54,7 +60,7 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title">Запланированные встречи</h5>
-                    {% if meetings %}
+                    {% if meetings and user.team_id %}
                         <p class="card-text">Количество встреч: <strong>{{ meetings|length }}</strong></p>
                     {% else %}
                         <p class="card-text text-muted">Нет запланированных встреч</p>

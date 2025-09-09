@@ -21,7 +21,14 @@
 <li class="nav-item me-3 small-muted">{{ user or 'Гость' }}</li>
 <li class="nav-item">
 {% if user %}
-    <a class="btn btn-sm btn-primary" href="/auth/logout">Выйти</a>
+    <form action="/auth/logout" method="post" 
+                                onsubmit="return confirm('Вы уверены, что хотите выйти из аккаунта?');" 
+                                class="flex-fill">
+        <input type="hidden" name="_method" value="delete">
+        <button type="submit" class="btn btn-danger btn-sm w-100">
+            Выйти
+        </button>
+    </form>
 {% endif %}
 </li>
 </ul>

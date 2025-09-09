@@ -65,7 +65,7 @@ async def refresh_token(request: Request, user_manager = Depends(get_user_manage
     return response
 
 
-@router.get('/logout')
+@router.post('/logout')
 async def logout():
     """Выход из аккаунта"""
     response = RedirectResponse(url='/', status_code=status.HTTP_303_SEE_OTHER)

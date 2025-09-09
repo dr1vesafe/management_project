@@ -324,6 +324,9 @@ async def remove_user_from_team_submit(
     team.code = generate_team_code()
     
     user.team_id = None
+    if user.role == 'manager':
+        user.role = 'user'
+        
     db.add(user)
     db.add(team)
     await db.commit()
