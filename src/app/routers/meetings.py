@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Form
@@ -156,6 +156,38 @@ async def create_meeting_submit(
     return RedirectResponse(
         url=f'/meetings',
         status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+@router.get('/{meeting_id}')
+async def meeting_detail_page(
+    meeting_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Meeting)
+        .where(Meeting.id == meeting_id)
+        .options(selectinload(Meeting.organizer),
+                 selectinload(Meeting.team))
+    )
+    meeting = result.scalars().first()
+    participants_query = await db.execute(
+        select(MeetingParticipant)
+        .where(MeetingParticipant.meeting_id == meeting_id)
+        .options(selectinload(MeetingParticipant.user))
+    )
+    participants = participants_query.scalars().all()
+
+    return templates.TemplateResponse(
+        'meeting/meeting_detail.html',
+        {
+            'request': request,
+            'meeting': meeting,
+            'participants': participants,
+            'user': user
+        }
     )
 
 

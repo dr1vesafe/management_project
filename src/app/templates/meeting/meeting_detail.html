@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Встреча: {{ meeting.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">{{ meeting.title }}</h2>
+
+  <p><strong>Описание:</strong> {{ meeting.description or "Без описания" }}</p>
+  <p><strong>Дата и время:</strong> {{ meeting.scheduled_at.strftime('%Y-%m-%d %H:%M') }}</p>
+  <p><strong>Организатор:</strong> {{ meeting.organizer.first_name }} {{ meeting.organizer.last_name }} | {{ meeting.organizer.email }}</p>
+  <p><strong>Команда:</strong> {{ meeting.team.name }}</p>
+
+  <h4 class="mt-4">Участники:</h4>
+  {% if participants %}
+    <ul>
+      {% for p in participants %}
+        <li>{{ p.user.first_name }} {{ p.user.last_name }} | {{ p.user.email }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Нет участников</p>
+  {% endif %}
+
+  {% if user.role in ["manager", "admin"] %}
+    <a href="/meetings/{{ meeting.id }}/edit" class="btn btn-primary mt-3">Изменить</a>
+    <form action="/meetings/{{ meeting.id }}/delete" method="post" class="d-inline">
+      <button type="submit" class="btn btn-danger mt-3" onclick="return confirm('Удалить встречу?')">Удалить</button>
+    </form>
+  {% endif %}
+
+  <a href="/meetings" class="btn btn-secondary mt-3">Назад к списку встреч</a>
+</div>
+{% endblock %}
