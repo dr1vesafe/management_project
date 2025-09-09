@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование встречи{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">Редактировать встречу</h2>
+  <form method="post" action="/meetings/{{ meeting.id }}/edit">
+    <div class="mb-3">
+      <label for="title" class="form-label">Название</label>
+      <input type="text" class="form-control" id="title" name="title" value="{{ meeting.title }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="description" class="form-label">Описание</label>
+      <textarea class="form-control" id="description" name="description">{{ meeting.description }}</textarea>
+    </div>
+
+    <div class="mb-3">
+      <label for="scheduled_at" class="form-label">Дата и время встречи</label>
+      <input type="datetime-local" class="form-control" id="scheduled_at" name="scheduled_at"
+             value="{{ meeting.scheduled_at.strftime('%Y-%m-%dT%H:%M') }}" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+    <a href="/meetings/{{ meeting.id }}" class="btn btn-secondary">Отмена</a>
+  </form>
+</div>
+{% endblock %}

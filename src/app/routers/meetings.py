@@ -154,7 +154,7 @@ async def create_meeting_submit(
     meeting = await meeting_crud.create_meeting(db, meeting_data, user)
 
     return RedirectResponse(
-        url=f'/meetings',
+        url=f'/meetings/{meeting.id}',
         status_code=status.HTTP_303_SEE_OTHER
     )
 
@@ -166,6 +166,7 @@ async def meeting_detail_page(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    """Детальная страница встречи"""
     result = await db.execute(
         select(Meeting)
         .where(Meeting.id == meeting_id)
@@ -173,6 +174,18 @@ async def meeting_detail_page(
                  selectinload(Meeting.team))
     )
     meeting = result.scalars().first()
+    if not meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Встреча не найдена'
+        )
+    
+    if user.team_id != meeting.team_id and user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Встреча не найдена'
+        )
+    
     participants_query = await db.execute(
         select(MeetingParticipant)
         .where(MeetingParticipant.meeting_id == meeting_id)
@@ -188,6 +201,80 @@ async def meeting_detail_page(
             'participants': participants,
             'user': user
         }
+    )
+
+
+@router.get('/{meeting_id}/edit')
+async def edit_meeting_page(
+    meeting_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Страница для изменения встречи"""
+    result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+    meeting = result.scalars().first()
+    if not meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Встреча не найдена'
+        )
+    
+    if user.team_id != meeting.team_id and user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Встреча не найдена'
+        )
+    
+    return templates.TemplateResponse(
+        'meeting/edit_meeting.html',
+        {'request': request, 'meeting': meeting, 'user': user}
+    )
+
+
+@router.post('/{meeting_id}/edit')
+async def edit_meeting_submit(
+    meeting_id: int,
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(...),
+    scheduled_at: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Изменение встречи"""
+    try:
+        scheduled_dt = datetime.fromisoformat(scheduled_at)
+    except ValueError:
+        return templates.TemplateResponse(
+            'meeting/create_meeting.html',
+            {'request': request, 'error': 'Неверный формат даты/времени', 'user': user}
+        )
+    
+    result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
+    meeting = result.scalars().first()
+    if not meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Встреча не найдена'
+        )
+    
+    if user.team_id != meeting.team_id and user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Встреча не найдена'
+        )
+    
+    meeting_data = MeetingUpdate(
+        title=title,
+        description=description,
+        scheduled_at=scheduled_dt
+    )
+
+    await meeting_crud.update_meeting(db, meeting, meeting_data)
+    return RedirectResponse(
+        url=f'/meetings/{meeting_id}',
+        status_code=status.HTTP_303_SEE_OTHER
     )
 
 
