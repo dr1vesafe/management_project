@@ -31,12 +31,16 @@ async def profile_page(
     if not user:
         return templates.TemplateResponse('login.html', {'request': request, 'error': 'Войдите в аккаунт'})
     
-    avg_grade = round(await evaluation_service.get_average_by_user(db, user.id), 1)
+    try:
+        avg_grade = round(await evaluation_service.get_average_by_user(db, user.id), 1)
+    except TypeError:
+        avg_grade = 0.0
+        
     return templates.TemplateResponse('profile/profile.html', {
         'request': request,
         'user': user,
         'message': message,
-        'avg_grade': avg_grade or 0.0
+        'avg_grade': avg_grade
         })
 
 

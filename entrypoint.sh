@@ -34,9 +34,34 @@ wait_for_db
 if [ -f "alembic.ini" ]; then
   echo "Alembic found."
 
-  if [ ! -d "migrations/versions" ] || [ -z "$(ls -A migrations/versions 2>/dev/null)" ]; then
-    echo "No migration versions found. Generating initial migration..."
+  VERSION_COUNT=$(python - <<PY
+import os
+import psycopg2
+
+conn = psycopg2.connect(
+    dbname=os.getenv("POSTGRES_DB"),
+    user=os.getenv("POSTGRES_USER"),
+    password=os.getenv("POSTGRES_PASSWORD"),
+    host=os.getenv("POSTGRES_HOST", "db"),
+    port=os.getenv("POSTGRES_PORT", "5432")
+)
+cur = conn.cursor()
+try:
+    cur.execute("SELECT COUNT(*) FROM alembic_version;")
+    count = cur.fetchone()[0]
+except:
+    count = 0
+cur.close()
+conn.close()
+print(count)
+PY
+)
+
+  if [ "$VERSION_COUNT" -eq 0 ]; then
+    echo "No migration applied in DB. Generating initial migration..."
     alembic revision --autogenerate -m "Initial migration"
+  else
+    echo "Migration already applied in DB. Skipping generation."
   fi
 
   echo "Applying migrations..."
