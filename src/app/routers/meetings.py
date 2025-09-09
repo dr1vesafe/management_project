@@ -251,19 +251,7 @@ async def edit_meeting_submit(
             {'request': request, 'error': 'Неверный формат даты/времени', 'user': user}
         )
     
-    result = await db.execute(select(Meeting).where(Meeting.id == meeting_id))
-    meeting = result.scalars().first()
-    if not meeting:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Встреча не найдена'
-        )
-    
-    if user.team_id != meeting.team_id and user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Встреча не найдена'
-        )
+    meeting = await check_meeting(db, meeting_id, user)
     
     meeting_data = MeetingUpdate(
         title=title,
@@ -274,6 +262,23 @@ async def edit_meeting_submit(
     await meeting_crud.update_meeting(db, meeting, meeting_data)
     return RedirectResponse(
         url=f'/meetings/{meeting_id}',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+@router.post('/{meeting_id}/delete')
+async def delete_meeting_submit(
+    meeting_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Удаление встречи"""
+    meeting = await check_meeting(db, meeting_id, user)
+
+    await meeting_crud.delete_meeting(db, meeting)
+
+    return RedirectResponse(
+        url='/meetings',
         status_code=status.HTTP_303_SEE_OTHER
     )
 
