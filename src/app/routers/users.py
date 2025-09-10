@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from src.app.database import get_db
+from src.app.config import settings
 from src.app.models.user import User, UserRole
 from src.app.schemas.user import UserRead, UserUpdate, ChangePassword
 from src.app.auth.dependencies import get_current_user, require_role
@@ -17,6 +18,7 @@ from src.app.services import evaluation_service
 
 router = APIRouter(prefix='/users', tags=['users'])
 templates = Jinja2Templates(directory='src/app/templates')
+SECRET_KEY = settings.SECRET
 
 
 # Маршруты для пользователей
@@ -172,6 +174,43 @@ async def change_password(
         url='/users/profile?message=Пароль успешно изменен',
         status_code=status.HTTP_303_SEE_OTHER
     )
+
+
+@router.get('/admin')
+async def admin_page(request: Request, user: User = Depends(get_current_user)):
+    """Страница для получения роли admin"""
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Unauthorized'
+        )
+    
+    return templates.TemplateResponse('admin.html', {'request': request})
+
+
+@router.post('/admin')
+async def submit_secret_key(
+    request: Request,
+    key: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Unauthorized'
+        )
+
+    if key != SECRET_KEY:
+        return RedirectResponse(url='/secret', status_code=status.HTTP_303_SEE_OTHER)
+
+    user = await db.merge(user)
+    user.role = 'admin'
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return RedirectResponse(url='/?message=Вы%20успешно%20стали%20админом', status_code=status.HTTP_303_SEE_OTHER)
 
 
 # Маршруты для администраторов

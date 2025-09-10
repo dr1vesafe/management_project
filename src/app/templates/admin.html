@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Секретный ключ{% endblock %}
+
+{% block content %}
+<body>
+<div class="container mt-5">
+  <h2 class="mb-4">Получение роли администратора</h2>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <form method="post">
+    <div class="mb-3">
+      <label for="key" class="form-label">Секретный ключ</label>
+      <input type="password" class="form-control" id="key" name="key" placeholder="Введите секретный ключ" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Подтвердить</button>
+    <a href="/" class="btn btn-secondary">Отмена</a>
+  </form>
+</div>
+</body>
+{% endblock %}
