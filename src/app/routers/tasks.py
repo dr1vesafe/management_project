@@ -78,9 +78,9 @@ async def tasks_page(
     tasks = (await db.execute(query)).scalars().all()
 
     return templates.TemplateResponse(
+        request,
         'task/tasks.html',
         {
-            'request': request,
             'tasks': tasks,
             'page': page,
             'total_pages': total_pages,
@@ -100,7 +100,9 @@ async def create_task_page(
     """Страница создания задачи"""
     performers = (await db.execute(select(User).where(User.team_id == user.team_id))).scalars().all()
     return templates.TemplateResponse(
-        'task/create_task.html', {'request': request, 'performers': performers, 'user': user}
+        request,
+        'task/create_task.html',
+        {'performers': performers, 'user': user}
     )
 
 @router.post('/create')
@@ -166,9 +168,9 @@ async def task_detail_page(
     )
 
     return templates.TemplateResponse(
+        request,
         'task/task_detail.html',
         {
-            'request': request,
             'task': task,
             'can_change_status': can_change_status,
             'user': user
@@ -219,9 +221,9 @@ async def update_task_status(
     await db.refresh(task)
 
     return templates.TemplateResponse(
+        request,
         'task/task_detail.html',
         {
-            'request': request,
             'task': task,
             'can_change_status': True,
             'message': 'Статус задачи обновлен',

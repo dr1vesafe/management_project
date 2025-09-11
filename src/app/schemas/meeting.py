@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MeetingParticipantBase(BaseModel):
@@ -18,8 +18,7 @@ class MeetingParticipantRead(MeetingParticipantBase):
     """Схема для получения данных участника встречи"""
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MeetingBase(BaseModel):
@@ -44,8 +43,7 @@ class MeetingRead(MeetingBase):
     created_at: datetime
     participants: list[MeetingParticipantRead] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MeetingUpdate(MeetingBase):

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import IntEnum
 
 from sqlalchemy import Integer, Text, ForeignKey, DateTime, Enum as SQLEnum
@@ -28,7 +28,7 @@ class Evaluation(Base):
     )
 
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     manager_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     manager = relationship('User', back_populates='given_evaluations', foreign_keys=[manager_id])

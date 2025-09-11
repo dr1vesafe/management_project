@@ -51,10 +51,11 @@ async def check_team(
 @router.get('/create')
 async def create_team_page(request: Request):
     """Страница создания команды"""
-    return templates.TemplateResponse('team/create_team.html', {
-        'request': request,
-        'error': None
-    })
+    return templates.TemplateResponse(
+        request,
+        'team/create_team.html', 
+        {'error': None}
+    )
 
 
 @router.post('/create')
@@ -66,10 +67,11 @@ async def create_team_submit(
 ):
     """Создание команды"""
     if user.team_id:
-        return templates.TemplateResponse('team/create_team.html', {
-                'request': request,
-                'error': 'Вы уже состоите в команде'
-        })
+        return templates.TemplateResponse(
+            request,
+            'team/create_team.html',
+            {'error': 'Вы уже состоите в команде'}
+        )
     
     if user.role == 'user':
         user.role = 'manager'
@@ -121,11 +123,11 @@ async def leave_team(
 @router.get('/join-team')
 async def join_team_page(request: Request):
     """Страница вступления в команду"""
-    return templates.TemplateResponse('team/join_team.html', {
-        'request': request,
-        'error': None,
-        'success': None
-        })
+    return templates.TemplateResponse(
+        request,
+        'team/join_team.html',
+        {'error': None, 'success': None}
+    )
 
 
 @router.post('/join-team')
@@ -140,27 +142,30 @@ async def join_team(
 
     if not current_user:
         error = 'Необходимо войти в аккаунт'
-        return templates.TemplateResponse('team/join_team.html', {
-            'request': request,
-            'error': error
-        })
+        return templates.TemplateResponse(
+            request,
+            'team/join_team.html',
+            {'error': error}
+        )
         
     if current_user.team_id:
         error = 'Вы уже состоите в команде'
-        return templates.TemplateResponse('team/join_team.html', {
-            'request': request,
-            'error': error
-        })
+        return templates.TemplateResponse(
+            request,
+            'team/join_team.html',
+            {'error': error}
+        )
     
     result = await db.execute(select(Team).where(Team.code == team_code))
     team = result.scalars().first()
 
     if not team:
         error = 'Команда с таким кодом не найдена'
-        return templates.TemplateResponse('team/join_team.html', {
-            'request': request,
-            'error': error
-        })
+        return templates.TemplateResponse(
+            request,
+            'team/join_team.html',
+            {'error': error}
+        )
     
     user = await db.merge(current_user)
     user.team_id = team.id
@@ -207,8 +212,9 @@ async def team_page(
         avg_grade = 0.0
     
     return templates.TemplateResponse(
+        request,
         'team/team.html',
-        {'request': request, 'team': team, 'members': members, 'user': user, 'avg_grade': avg_grade or 0.0}
+        {'team': team, 'members': members, 'user': user, 'avg_grade': avg_grade}
     )
 
 
@@ -222,12 +228,11 @@ async def edit_team_page(
     """Страница изменения команды"""
     team = await check_team(db, team_id, user)
     
-    return templates.TemplateResponse('team/edit_team.html', {
-        'request': request,
-        'team': team,
-        'error': None,
-        'user': user
-    })
+    return templates.TemplateResponse(
+        request,
+        'team/edit_team.html',
+        {'team': team, 'error': None, 'user': user}
+    )
 
 
 @router.post('/{team_id}/edit')

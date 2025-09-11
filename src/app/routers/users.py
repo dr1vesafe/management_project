@@ -38,12 +38,11 @@ async def profile_page(
     except TypeError:
         avg_grade = 0.0
         
-    return templates.TemplateResponse('profile/profile.html', {
-        'request': request,
-        'user': user,
-        'message': message,
-        'avg_grade': avg_grade
-        })
+    return templates.TemplateResponse(
+        request,
+        'profile/profile.html',
+        {'user': user, 'message': message, 'avg_grade': avg_grade}
+    )
 
 
 @router.get('/profile/edit')
@@ -65,11 +64,11 @@ async def update_current_user(
     result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalar_one_or_none()
     if not user:
-        return templates.TemplateResponse('profile/edit_profile.html', {
-            'request': request,
-            'user': user,
-            'error': 'Пользователь не найден'
-        })
+        return templates.TemplateResponse(
+            request,
+            'profile/edit_profile.html',
+            {'user': user, 'error': 'Пользователь не найден'}
+        )
     
     user.first_name = first_name
     user.last_name = last_name
@@ -87,7 +86,6 @@ async def update_current_user(
 
 @router.post('/delete')
 async def delete_current_user(
-    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -116,7 +114,11 @@ async def delete_current_user(
 @router.get('/profile/change-password')
 async def change_password_page(request: Request, user: User = Depends(get_current_user)):
     """Страница изменения пароля"""
-    return templates.TemplateResponse('profile/change_password.html', {'request': request, 'error': None, 'message': None})
+    return templates.TemplateResponse(
+        request,
+        'profile/change_password.html',
+        {'error': None, 'message': None}
+    )
 
 
 @router.post('/profile/change-password')
@@ -141,14 +143,16 @@ async def change_password(
 
     if not authenticated_user:
         return templates.TemplateResponse(
+            request,
             'profile/change_password.html',
-            {'request': request, 'error': 'Старый пароль введен неверно', 'message': None}
+            {'error': 'Старый пароль введен неверно', 'message': None}
         )
 
     if new_password != confirm_password:
         return templates.TemplateResponse(
+            request,
             'profile/change_password.html',
-            {'request': request, 'error': 'Пароли не совпадают', 'message': None}
+            {'error': 'Пароли не совпадают', 'message': None}
         )
 
     if len(new_password) < 8:
@@ -160,8 +164,9 @@ async def change_password(
 
     if error:
         return templates.TemplateResponse(
+            request,
             'profile/change_password.html',
-            {'request': request, 'error': error, 'message': None}
+            {'error': error, 'message': None}
         )
     
     user = await db.merge(user)
@@ -185,12 +190,11 @@ async def admin_page(request: Request, user: User = Depends(get_current_user)):
             detail='Unauthorized'
         )
     
-    return templates.TemplateResponse('admin.html', {'request': request})
+    return templates.TemplateResponse(request, 'admin.html')
 
 
 @router.post('/admin')
 async def submit_secret_key(
-    request: Request,
     key: str = Form(...),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)

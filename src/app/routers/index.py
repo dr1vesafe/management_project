@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.templating import Jinja2Templates
@@ -38,7 +38,7 @@ async def index(
         tasks_result = await db.execute(select(Task).where(Task.performer_id == user.id, Task.status.in_(['open', 'in_progress'])))
         tasks = tasks_result.scalars().all()
 
-        current_date = datetime.utcnow()
+        current_date = datetime.now(UTC)
         meetings_result = await db.execute(
             select(Meeting)
             .join(MeetingParticipant)
@@ -49,11 +49,14 @@ async def index(
     if user is None and request.cookies.get("refresh_token"):
         return RedirectResponse(url="/auth/refresh?next=/")
     
-    return templates.TemplateResponse('main_page/index.html', {
-        'request': request,
-        'user': user,
-        'team': team,
-        'tasks' : tasks,
-        'meetings': meetings,
-        'message': message
-    })
+    return templates.TemplateResponse(
+        request,
+        'main_page/index.html', 
+        {
+            'user': user,
+            'team': team,
+            'tasks' : tasks,
+            'meetings': meetings,
+            'message': message
+        }
+    )

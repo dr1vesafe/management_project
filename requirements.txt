@@ -5,6 +5,7 @@ sqlalchemy==2.0.34
 alembic==1.13.2
 psycopg2-binary==2.9.9
 asyncpg==0.29.0
+aiosqlite==0.20.0
 
 fastapi-users[sqlalchemy]==13.0.0
 python-jose[cryptography]==3.1.0

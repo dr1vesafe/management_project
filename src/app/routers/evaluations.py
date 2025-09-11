@@ -77,8 +77,9 @@ async def evaluations_page(
     evaluations = evaluations_result.scalars().all()
 
     return templates.TemplateResponse(
+        request,
         'evaluation/evaluations.html',
-        {'request': request, 'task': task, 'evaluations': evaluations, 'user': user}
+        {'task': task, 'evaluations': evaluations, 'user': user}
     )
 
 
@@ -105,8 +106,9 @@ async def create_evaluation_page(
         )
     
     return templates.TemplateResponse(
+        request,
         'evaluation/create_evaluation.html',
-        {'request': request, 'task': task, 'grades': list(EvaluationGrade), 'error': None}
+        {'task': task, 'grades': list(EvaluationGrade), 'error': None}
     )
 
 @router.post('/task/{task_id}/create')
@@ -158,7 +160,11 @@ async def edit_evaluation_page(
     user: User = Depends(require_role('manager', 'admin'))
 ):
     """Страница изменения оценки"""
-    result = await db.execute(select(Evaluation).where(Evaluation.id == evaluation_id).options(selectinload(Evaluation.task)))
+    result = await db.execute(
+        select(Evaluation)
+        .where(Evaluation.id == evaluation_id)
+        .options(selectinload(Evaluation.task))
+    )
     evaluation = result.scalars().first()
     if not evaluation:
         raise HTTPException(
@@ -173,8 +179,9 @@ async def edit_evaluation_page(
         )
 
     return templates.TemplateResponse(
+        request,
         'evaluation/edit_evaluation.html',
-        {'request': request, "evaluation": evaluation, 'grades': list(EvaluationGrade), 'error': None, 'user': user}
+        {'evaluation': evaluation, 'grades': list(EvaluationGrade), 'error': None, 'user': user}
     )
 
 

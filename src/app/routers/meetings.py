@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Form
 from fastapi.templating import Jinja2Templates
@@ -49,7 +49,7 @@ async def meetings_page(
     request: Request,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-    status: Optional[str] = Query(None, regex='^(past|upcoming)?$'),
+    status: Optional[str] = Query(None, pattern='^(past|upcoming)?$'),
     my_meetings: bool = Query(False),
     page: int = Query(1, ge=1)
 ):
@@ -63,7 +63,7 @@ async def meetings_page(
     query = query.where(Meeting.team_id == user.team_id)
     count_query = count_query.where(Meeting.team_id == user.team_id)
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     if status == 'past':
         query = query.where(Meeting.scheduled_at < now)
@@ -82,9 +82,9 @@ async def meetings_page(
     meetings = (await db.execute(query.offset(offset).limit(limit))).scalars().all()
 
     return templates.TemplateResponse(
+        request,
         'meeting/meetings.html',
         {
-            'request': request,
             'meetings': meetings,
             'status': status or '',
             'my_meetings': my_meetings,
@@ -106,9 +106,9 @@ async def create_meeting_page(
     team_members = result.scalars().all()
 
     return templates.TemplateResponse(
+        request,
         'meeting/create_meeting.html',
         {
-            'request': request,
             'error': None,
             'user': user,
             'team_members': team_members
@@ -147,8 +147,9 @@ async def create_meeting_submit(
 
     if meeting_data.team_id and user.team_id != meeting_data.team_id and user.role != 'admin':
         return templates.TemplateResponse(
+            request,
             'meeting/create_meeting.html',
-            {'request': request, 'error': 'Недостаточно прав для создания встречи в этой команде', 'user': user}
+            {'error': 'Недостаточно прав для создания встречи в этой команде', 'user': user}
         )
 
     meeting = await meeting_crud.create_meeting(db, meeting_data, user)
@@ -194,9 +195,9 @@ async def meeting_detail_page(
     participants = participants_query.scalars().all()
 
     return templates.TemplateResponse(
+        request,
         'meeting/meeting_detail.html',
         {
-            'request': request,
             'meeting': meeting,
             'participants': participants,
             'user': user
@@ -227,8 +228,9 @@ async def edit_meeting_page(
         )
     
     return templates.TemplateResponse(
+        request,
         'meeting/edit_meeting.html',
-        {'request': request, 'meeting': meeting, 'user': user}
+        {'meeting': meeting, 'user': user}
     )
 
 
@@ -247,8 +249,9 @@ async def edit_meeting_submit(
         scheduled_dt = datetime.fromisoformat(scheduled_at)
     except ValueError:
         return templates.TemplateResponse(
+            request,
             'meeting/create_meeting.html',
-            {'request': request, 'error': 'Неверный формат даты/времени', 'user': user}
+            {'error': 'Неверный формат даты/времени', 'user': user}
         )
     
     meeting = await check_meeting(db, meeting_id, user)

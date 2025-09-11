@@ -1,9 +1,8 @@
 import re
 
-from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 from pydantic_core import PydanticCustomError
 
 from src.app.models.user import UserRole
@@ -45,8 +44,7 @@ class UserRead(UserBase):
     team_id: Optional[int] = None
     role: UserRole
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdate(BaseModel):
