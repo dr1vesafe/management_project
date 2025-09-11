@@ -7,7 +7,7 @@ from src.app.schemas.task import TaskCreate, TaskUpdate
 
 async def create_task(db: AsyncSession, task_data: TaskCreate) -> Task:
     """Создать задачу"""
-    task = Task(**task_data.dict())
+    task = Task(**task_data.model_dump())
     db.add(task)
     await db.commit()
     await db.refresh(task)

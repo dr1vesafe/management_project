@@ -7,7 +7,7 @@ from src.app.schemas.evaluation import EvaluationCreate, EvaluationUpdate
 
 async def create_evaluation(db: AsyncSession, evaluation_data: EvaluationCreate) -> Evaluation:
     """Создать оценку"""
-    evaluation = Evaluation(**evaluation_data.dict())
+    evaluation = Evaluation(**evaluation_data.model_dump())
     db.add(evaluation)
     await db.commit()
     await db.refresh(evaluation)

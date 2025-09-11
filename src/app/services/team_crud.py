@@ -7,7 +7,7 @@ from src.app.schemas.team import TeamCreate, TeamUpdate
 
 async def create_team(db: AsyncSession, team_data: TeamCreate) -> Team:
     """Создать команду"""
-    team = Team(**team_data.dict())
+    team = Team(**team_data.model_dump())
     db.add(team)
     await db.commit()
     await db.refresh(team)
