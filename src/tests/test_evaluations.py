@@ -20,7 +20,7 @@ async def test_create_evaluation_submit(client, session):
         role='manager',
         team_id=1
     )
-    test_task = Task(title='Task 1', description='Desc', performer_id=1, team_id=1)
+    test_task = Task(title='Task 1', description='Описание', performer_id=1, team_id=1)
     session.add_all([test_user, test_task])
     await session.commit()
     await session.refresh(test_user)
@@ -53,7 +53,7 @@ async def test_edit_evaluation_submit(client, session):
         role='manager',
         team_id=1
     )
-    test_task = Task(title='Task 1', description='Desc', performer_id=1, team_id=1)
+    test_task = Task(title='Task 1', description='Описание', performer_id=1, team_id=1)
     test_evaluation = Evaluation(task_id=1, manager_id=1, user_id=1, grade=EvaluationGrade.THREE)
     session.add_all([test_user, test_task, test_evaluation])
     await session.commit()
@@ -86,7 +86,7 @@ async def test_delete_evaluation_submit(client, session):
         role='manager',
         team_id=1
     )
-    test_task = Task(title='Task 1', description='Desc', performer_id=1, team_id=1)
+    test_task = Task(title='Task 1', description='Описание', performer_id=1, team_id=1)
     test_evaluation = Evaluation(task_id=1, manager_id=1, user_id=1, grade=EvaluationGrade.THREE)
     session.add_all([test_user, test_task, test_evaluation])
     await session.commit()
