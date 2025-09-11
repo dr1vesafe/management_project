@@ -56,12 +56,14 @@ async def refresh_token(request: Request, user_manager = Depends(get_user_manage
     """Генерация access токена с помощью refresh токена"""
     token = request.cookies.get('refresh_token')
     if not token:
-        return RedirectResponse(url='/')
+        return RedirectResponse(url='/auth/login')
 
     refresh_token = token.removeprefix('Bearer ').strip()
     user = await refresh_backend.get_strategy().read_token(refresh_token, user_manager)
     if not user:
-        return RedirectResponse(url='/') 
+        response = RedirectResponse(url='/') 
+        response.delete_cookie('refresh_token')
+        return response
 
     new_access_token = await access_backend.get_strategy().write_token(user)
 
