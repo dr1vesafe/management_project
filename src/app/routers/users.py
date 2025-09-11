@@ -294,7 +294,7 @@ async def update_user_by_id(
             detail='Пользователь не найден'
         )
     
-    for field, value in data.dict(exclude_unset=True).items():
+    for field, value in data.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
 
     db.add(user)

@@ -22,7 +22,7 @@ async def get_task(db: AsyncSession, task_id: int) -> Task | None:
 
 async def update_task(db: AsyncSession, task: Task, task_data: TaskUpdate) -> Task:
     """Изменить задачу"""
-    for field, value in task_data.dict(exclude_unset=True).items():
+    for field, value in task_data.model_dump(exclude_unset=True).items():
         setattr(task, field, value)
     await db.commit()
     await db.refresh(task)

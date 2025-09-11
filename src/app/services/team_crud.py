@@ -22,7 +22,7 @@ async def get_team(db: AsyncSession, team_id: int) -> Team | None:
 
 async def update_team(db: AsyncSession, team: Team, team_data: TeamUpdate) -> Team:
     """Изменить команду"""
-    for field, value in team_data.dict(exclude_unset=True).items():
+    for field, value in team_data.model_dump(exclude_unset=True).items():
         setattr(team, field, value)
     await db.commit()
     await db.refresh(team)

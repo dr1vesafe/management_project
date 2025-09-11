@@ -38,7 +38,7 @@ async def create_meeting(db: AsyncSession, meeting_data: MeetingCreate, user: Us
         team_user_ids = {user_id for (user_id,) in team_users.all()}
         participants_id.update(team_user_ids)
 
-    meeting_dict = meeting_data.dict(exclude={'participants_id', 'add_team_members'})
+    meeting_dict = meeting_data.model_dump(exclude={'participants_id', 'add_team_members'})
     meeting = Meeting(**meeting_dict)
     db.add(meeting)
     await db.flush()
@@ -73,7 +73,7 @@ async def update_meeting(
         meeting_data: MeetingUpdate
 ) -> Meeting:
     """Изменение встречи"""
-    data = meeting_data.dict(exclude_unset=True)
+    data = meeting_data.model_dump(exclude_unset=True)
 
     if 'participants' in data:
         participants_data = data.pop('participants')

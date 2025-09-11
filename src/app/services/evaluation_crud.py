@@ -26,7 +26,7 @@ async def update_evaluation(
         evaluation_data: EvaluationUpdate
 ) -> Evaluation:
     """Изменить оценку"""
-    for field, value in evaluation_data.dict(exclude_unset=True).items():
+    for field, value in evaluation_data.model_dump(exclude_unset=True).items():
         setattr(evaluation, field, value)
     await db.commit()
     await db.refresh(evaluation)

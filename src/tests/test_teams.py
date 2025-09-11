@@ -90,3 +90,33 @@ async def test_join_team(client, session):
 
     await session.refresh(test_user)
     assert test_user.team_id == test_team.id
+
+
+@pytest.mark.asyncio
+async def test_edit_team_submit(client, session):
+    """Тест изменения команды"""
+    test_team = Team(name='OldName')
+    session.add(test_team)
+    await session.commit()
+    await session.refresh(test_team)
+
+    test_user = User(
+        first_name='Test',
+        last_name='User',
+        email='user@test.com',
+        hashed_password='password',
+        role='manager',
+        team_id=test_team.id
+    )
+    session.add(test_user)
+    await session.commit()
+    await session.refresh(test_user)
+
+    app.dependency_overrides[get_current_user] = lambda: test_user
+
+    response = await client.post(f'/teams/{test_team.id}/edit', data={'name': 'NewName'})
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+    assert response.headers['location'] == f'/teams/{test_team.id}'
+
+    await session.refresh(test_team)
+    assert test_team.name == 'NewName'
