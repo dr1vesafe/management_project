@@ -114,7 +114,6 @@ async def create_evaluation_page(
 @router.post('/task/{task_id}/create')
 async def create_evalution_submit(
     task_id: int,
-    request: Request,
     grade: int = Form(...),
     comment: str = Form(''),
     db: AsyncSession = Depends(get_db),
