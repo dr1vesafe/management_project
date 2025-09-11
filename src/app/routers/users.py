@@ -31,7 +31,11 @@ async def profile_page(
 ):
     """Страница профиля пользователя"""
     if not user:
-        return templates.TemplateResponse('login.html', {'request': request, 'error': 'Войдите в аккаунт'})
+        return templates.TemplateResponse(
+            request,
+            'auth/login.html',
+            {'error': 'Войдите в аккаунт'}
+        )
     
     try:
         avg_grade = round(await evaluation_service.get_average_by_user(db, user.id), 1)
@@ -199,6 +203,7 @@ async def submit_secret_key(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    """Изменение роли на admin"""
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
