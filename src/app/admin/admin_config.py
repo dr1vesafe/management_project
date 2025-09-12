@@ -1,11 +1,17 @@
 from fastapi import Request, HTTPException
 from sqladmin import Admin
 from sqladmin.authentication import AuthenticationBackend
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt, JWTError
 
-from src.app.admin.views import user, team, task, meeting, evaluation, meeting_participants
+from src.app.admin.views import (
+    user,
+    team,
+    task,
+    meeting,
+    evaluation,
+    meeting_participants
+)
 from src.app.database import async_session
 from src.app.config import settings
 from src.app.models.user import User
@@ -27,7 +33,7 @@ class AdminAuth(AuthenticationBackend):
             raise HTTPException(status_code=403, detail="Not authorized")
 
         token = raw_token.replace('Bearer ', '')
-        
+
         try:
             payload = jwt.decode(
                 token,
@@ -42,14 +48,16 @@ class AdminAuth(AuthenticationBackend):
             raise HTTPException(status_code=403, detail="Invalid token")
 
         async with async_session() as session:
-            result = await session.execute(select(User).where(User.id == int(user_id)))
+            result = await session.execute(
+                select(User)
+                .where(User.id == int(user_id))
+            )
             user = result.scalar_one_or_none()
             if not user or user.role != "admin":
                 raise HTTPException(status_code=403, detail="Forbidden")
 
         return True
 
-    
 
 def setup_admin(app, engine):
     admin = Admin(
@@ -64,5 +72,5 @@ def setup_admin(app, engine):
     admin.add_view(meeting.MeetingAdmin)
     admin.add_view(evaluation.EvaluationAdmin)
     admin.add_view(meeting_participants.MeetingParticipantAdmin)
-    
+
     return admin

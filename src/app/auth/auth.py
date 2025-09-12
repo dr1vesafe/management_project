@@ -1,5 +1,9 @@
 from fastapi_users import FastAPIUsers
-from fastapi_users.authentication import AuthenticationBackend, BearerTransport, JWTStrategy
+from fastapi_users.authentication import (
+    AuthenticationBackend,
+    BearerTransport,
+    JWTStrategy
+)
 
 from src.app.auth.user_manager import get_user_manager, SECRET
 from src.app.models.user import User
@@ -10,11 +14,13 @@ refresh_transport = BearerTransport(tokenUrl='auth/jwt/refresh')
 
 
 def get_access_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600) # 1 час
+    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+    # 1 час
 
 
 def get_refresh_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET + '_REFRESH', lifetime_seconds=2592000) # 30 дней
+    return JWTStrategy(secret=SECRET + '_REFRESH', lifetime_seconds=2592000)
+    # 30 дней
 
 
 access_backend = AuthenticationBackend(

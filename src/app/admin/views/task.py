@@ -18,8 +18,15 @@ class TaskAdmin(ModelView, model=Task):
         Task.team_id,
         Task.performer_id
     ]
+
     column_searchable_list = [Task.title, Task.team_id]
-    column_sortable_list = [Task.id, Task.created_at, Task.deadline_date, Task.team_id, Task.performer_id]
+    column_sortable_list = [
+        Task.id,
+        Task.created_at,
+        Task.deadline_date,
+        Task.team_id,
+        Task.performer_id
+    ]
 
     form_columns = [
         Task.title,

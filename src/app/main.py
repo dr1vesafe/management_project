@@ -1,13 +1,20 @@
-from fastapi import FastAPI, Depends, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Depends
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 
 from .config import settings
-from .database import engine, async_session
+from .database import engine
 from src.app.admin.admin_config import setup_admin
-from src.app.routers import users, auth, tasks, teams, evaluations, meetings, index
+from src.app.routers import (
+    users,
+    auth,
+    tasks,
+    teams,
+    evaluations,
+    meetings,
+    index
+)
 from src.app.models import User
-from src.app.auth.dependencies import require_role, get_current_user
+from src.app.auth.dependencies import require_role
 
 
 def create_application() -> FastAPI:
@@ -25,7 +32,6 @@ def create_application() -> FastAPI:
     app.include_router(evaluations.router)
     app.include_router(meetings.router)
     app.include_router(index.router)
-
 
     return app
 

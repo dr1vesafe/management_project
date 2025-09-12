@@ -17,6 +17,7 @@ class UserAdmin(ModelView, model=User):
         User.role,
         User.team_id
     ]
+
     column_searchable_list = [User.email, User.team_id]
     column_sortable_list = [User.id, User.team_id, User.role, User.is_active]
 

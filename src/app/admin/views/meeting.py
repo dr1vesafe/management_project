@@ -16,7 +16,12 @@ class MeetingAdmin(ModelView, model=Meeting):
         Meeting.organizer_id
     ]
     column_searchable_list = [Meeting.title, Meeting.team_id]
-    column_sortable_list = [Meeting.id, Meeting.scheduled_at, Meeting.team_id, Meeting.organizer_id]
+    column_sortable_list = [
+        Meeting.id,
+        Meeting.scheduled_at,
+        Meeting.team_id,
+        Meeting.organizer_id
+    ]
 
     form_columns = [
         Meeting.title,

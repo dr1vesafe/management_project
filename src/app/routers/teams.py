@@ -1,13 +1,21 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Form
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    Query,
+    Request,
+    Form
+)
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from src.app.schemas.team import TeamRead, TeamCreate, TeamUpdate, JoinTeamRequest
+from src.app.schemas.team import TeamRead, TeamCreate, TeamUpdate
 from src.app.database import get_db
 from src.app.models.user import User
 from src.app.models.team import Team, generate_team_code
@@ -37,15 +45,15 @@ async def check_team(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
         )
-    
+
     if not team:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Команда не найдена'
         )
-    
+
     return team
-    
+
 
 # Маршруты для пользователей
 @router.get('/create')
@@ -53,7 +61,7 @@ async def create_team_page(request: Request):
     """Страница создания команды"""
     return templates.TemplateResponse(
         request,
-        'team/create_team.html', 
+        'team/create_team.html',
         {'error': None}
     )
 
@@ -72,7 +80,7 @@ async def create_team_submit(
             'team/create_team.html',
             {'error': 'Вы уже состоите в команде'}
         )
-    
+
     if user.role == 'user':
         user.role = 'manager'
 
@@ -101,7 +109,7 @@ async def leave_team(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Вы не состоите в команде'
         )
-    
+
     user = await db.merge(current_user)
     team = await check_team(db, user.team_id, user)
 
@@ -147,7 +155,7 @@ async def join_team(
             'team/join_team.html',
             {'error': error}
         )
-        
+
     if current_user.team_id:
         error = 'Вы уже состоите в команде'
         return templates.TemplateResponse(
@@ -155,7 +163,7 @@ async def join_team(
             'team/join_team.html',
             {'error': error}
         )
-    
+
     result = await db.execute(select(Team).where(Team.code == team_code))
     team = result.scalars().first()
 
@@ -166,7 +174,7 @@ async def join_team(
             'team/join_team.html',
             {'error': error}
         )
-    
+
     user = await db.merge(current_user)
     user.team_id = team.id
     db.add(user)
@@ -192,14 +200,14 @@ async def team_page(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
         )
-    
+
     result = await db.execute(
         select(Team)
         .where(Team.id == team_id)
         .options(selectinload(Team.members))
     )
     team = result.scalars().first()
-    
+
     members = team.members if hasattr(team, 'members') else []
     members = sorted(
         team.members,
@@ -207,14 +215,22 @@ async def team_page(
     )
 
     try:
-        avg_grade = round(await evaluation_service.get_average_grade_by_team(db, team_id), 1)
+        avg_grade = round(
+            await evaluation_service
+            .get_average_grade_by_team(db, team_id), 1
+        )
     except TypeError:
         avg_grade = 0.0
-    
+
     return templates.TemplateResponse(
         request,
         'team/team.html',
-        {'team': team, 'members': members, 'user': user, 'avg_grade': avg_grade}
+        {
+            'team': team,
+            'members': members,
+            'user': user,
+            'avg_grade': avg_grade
+        }
     )
 
 
@@ -227,7 +243,7 @@ async def edit_team_page(
 ):
     """Страница изменения команды"""
     team = await check_team(db, team_id, user)
-    
+
     return templates.TemplateResponse(
         request,
         'team/edit_team.html',
@@ -272,11 +288,14 @@ async def delete_team_submit(
             member.role = 'user'
         member.team_id = None
         db.add(member)
-    
+
     await team_crud.delete_team(db, team)
     await db.commit()
 
-    return RedirectResponse(url='/?message=Команда%20успешно%20удалена', status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(
+        url='/?message=Команда%20успешно%20удалена',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 @router.post('/{team_id}/code')
@@ -292,7 +311,10 @@ async def change_team_code_submit(
     db.add(team)
     await db.commit()
 
-    return RedirectResponse(url=f'/teams/{team_id}', status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(
+        url=f'/teams/{team_id}',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 @router.post('/{team_id}/users/{user_id}/remove')
@@ -314,7 +336,7 @@ async def remove_user_from_team_submit(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Вы не можете удалить себя'
         )
-    
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
@@ -322,25 +344,28 @@ async def remove_user_from_team_submit(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Пользователь не найден'
         )
-    
+
     if user.team_id != team_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Пользователь не состоит в этой команде'
         )
-    
+
     team = await check_team(db, team_id, user)
     team.code = generate_team_code()
-    
+
     user.team_id = None
     if user.role == 'manager':
         user.role = 'user'
-        
+
     db.add(user)
     db.add(team)
     await db.commit()
-    
-    return RedirectResponse(url=f'/teams/{team_id}', status_code=status.HTTP_303_SEE_OTHER)
+
+    return RedirectResponse(
+        url=f'/teams/{team_id}',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 @router.post('/{team_id}/users/{user_id}/promote')
@@ -362,7 +387,7 @@ async def promote_user_to_manager(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Вы не можете изменить свою роль'
         )
-    
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
@@ -375,12 +400,15 @@ async def promote_user_to_manager(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Пользователь не состоит в этой команде'
         )
-    
+
     user.role = 'manager'
     db.add(user)
     await db.commit()
 
-    return RedirectResponse(url=f'/teams/{team_id}', status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(
+        url=f'/teams/{team_id}',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 @router.post('/{team_id}/users/{user_id}/downgrade')
@@ -402,7 +430,7 @@ async def downgrade_manager_to_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Вы не можете изменить свою роль'
         )
-    
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
@@ -415,12 +443,15 @@ async def downgrade_manager_to_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Пользователь не состоит в этой команде'
         )
-    
+
     user.role = 'user'
     db.add(user)
     await db.commit()
 
-    return RedirectResponse(url=f'/teams/{team_id}', status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(
+        url=f'/teams/{team_id}',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 # Маршруты для администраторов
@@ -428,7 +459,10 @@ async def downgrade_manager_to_user(
 async def get_all_teams(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role('admin')),
-    name: Optional[str] = Query(None, description='Фильтрация по названию команды'),
+    name: Optional[str] = Query(
+        None,
+        description='Фильтрация по названию команды'
+    ),
     code: Optional[str] = Query(None, description='Филтрация по коду команды'),
     limit: int = Query(10, ge=1, le=100, description='Количество записей'),
     offset: int = Query(0, ge=0, description='Смещение')
@@ -514,13 +548,13 @@ async def remove_user_from_team(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Пользователь не найден'
         )
-    
+
     if user.team_id != team_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Пользователь не состоит в этой команде'
         )
-    
+
     user.team_id = None
     db.add(user)
     await db.commit()

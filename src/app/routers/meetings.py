@@ -1,7 +1,15 @@
 from typing import Optional
 from datetime import datetime, UTC
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Form
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    Query,
+    Request,
+    Form
+)
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +28,6 @@ router = APIRouter(prefix='/meetings', tags=['meetings'])
 templates = Jinja2Templates(directory='src/app/templates')
 
 
-
 async def check_meeting(
         db: AsyncSession,
         meeting_id: int,
@@ -33,13 +40,13 @@ async def check_meeting(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Встреча не найдена'
         )
-    
+
     if user.team_id != meeting.team_id and user.role != 'admin':
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Недостаточно прав'
         )
-    
+
     return meeting
 
 
@@ -57,7 +64,13 @@ async def meetings_page(
     limit = 10
     offset = (page - 1) * limit
 
-    query = select(Meeting).options(selectinload(Meeting.participants).selectinload(MeetingParticipant.user))
+    query = (
+        select(Meeting)
+        .options(
+            selectinload(Meeting.participants)
+            .selectinload(MeetingParticipant.user)
+        )
+    )
     count_query = select(func.count(Meeting.id))
 
     query = query.where(Meeting.team_id == user.team_id)
@@ -73,13 +86,20 @@ async def meetings_page(
         count_query = count_query.where(Meeting.scheduled_at >= now)
 
     if my_meetings:
-        query = query.join(MeetingParticipant).where(MeetingParticipant.user_id == user.id)
-        count_query = count_query.join(MeetingParticipant).where(MeetingParticipant.user_id == user.id)
+        query = (
+            query.join(MeetingParticipant)
+            .where(MeetingParticipant.user_id == user.id)
+        )
+        count_query = (
+            count_query.join(MeetingParticipant)
+            .where(MeetingParticipant.user_id == user.id)
+        )
 
     total_meetings = await db.scalar(count_query)
     total_pages = max((total_meetings + limit - 1) // limit, 1)
 
-    meetings = (await db.execute(query.offset(offset).limit(limit))).scalars().all()
+    meetings_result = await db.execute(query.offset(offset).limit(limit))
+    meetings = meetings_result.scalars().all()
 
     return templates.TemplateResponse(
         request,
@@ -134,7 +154,11 @@ async def create_meeting_submit(
     except ValueError:
         return templates.TemplateResponse(
             'meeting/create_meeting.html',
-            {'request': request, 'error': 'Неверный формат даты/времени', 'user': user}
+            {
+                'request': request,
+                'error': 'Неверный формат даты/времени',
+                'user': user
+            }
         )
     meeting_data = MeetingCreate(
         title=title,
@@ -145,11 +169,18 @@ async def create_meeting_submit(
         add_team_members=add_all_team
     )
 
-    if meeting_data.team_id and user.team_id != meeting_data.team_id and user.role != 'admin':
+    if (
+        meeting_data.team_id and
+        user.team_id != meeting_data.team_id and
+        user.role != 'admin'
+    ):
         return templates.TemplateResponse(
             request,
             'meeting/create_meeting.html',
-            {'error': 'Недостаточно прав для создания встречи в этой команде', 'user': user}
+            {
+                'error': 'Недостаточно прав для создания встречи',
+                'user': user
+            }
         )
 
     meeting = await meeting_crud.create_meeting(db, meeting_data, user)
@@ -180,13 +211,13 @@ async def meeting_detail_page(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Встреча не найдена'
         )
-    
+
     if user.team_id != meeting.team_id and user.role != 'admin':
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Встреча не найдена'
         )
-    
+
     participants_query = await db.execute(
         select(MeetingParticipant)
         .where(MeetingParticipant.meeting_id == meeting_id)
@@ -220,13 +251,13 @@ async def edit_meeting_page(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Встреча не найдена'
         )
-    
+
     if user.team_id != meeting.team_id and user.role != 'admin':
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Встреча не найдена'
         )
-    
+
     return templates.TemplateResponse(
         request,
         'meeting/edit_meeting.html',
@@ -253,9 +284,9 @@ async def edit_meeting_submit(
             'meeting/create_meeting.html',
             {'error': 'Неверный формат даты/времени', 'user': user}
         )
-    
+
     meeting = await check_meeting(db, meeting_id, user)
-    
+
     meeting_data = MeetingUpdate(
         title=title,
         description=description,
@@ -305,9 +336,18 @@ async def get_all_meetings(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role('admin')),
     team_id: Optional[int] = Query(None, description='Фильтрация по команде'),
-    organizer_id: Optional[int] = Query(None, description='Фильтрация по организатору'),
-    scheduled_before: Optional[datetime] = Query(None, description='Встречи до даты'),
-    scheduled_after: Optional[datetime] = Query(None, description='Встречи после даты'),
+    organizer_id: Optional[int] = Query(
+        None,
+        description='Фильтрация по организатору'
+    ),
+    scheduled_before: Optional[datetime] = Query(
+        None,
+        description='Встречи до даты'
+    ),
+    scheduled_after: Optional[datetime] = Query(
+        None,
+        description='Встречи после даты'
+    ),
     limit: int = Query(10, ge=1, le=100, description='Количество записей'),
     offset: int = Query(0, ge=0, description='Смещение'),
 ):
@@ -347,15 +387,28 @@ async def get_meeting_by_id(
 async def get_meetings_by_team(
     team_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-    organizer_id: Optional[int] = Query(None, description='Фильтрация по организатору'),
-    scheduled_before: Optional[datetime] = Query(None, description='Встречи до даты'),
-    scheduled_after: Optional[datetime] = Query(None, description='Встречи после даты'),
+    _: User = Depends(require_role('admin')),
+    organizer_id: Optional[int] = Query(
+        None,
+        description='Фильтрация по организатору'
+    ),
+    scheduled_before: Optional[datetime] = Query(
+        None,
+        description='Встречи до даты'
+    ),
+    scheduled_after: Optional[datetime] = Query(
+        None,
+        description='Встречи после даты'
+    ),
     limit: int = Query(10, ge=1, le=100, description='Количество записей'),
     offset: int = Query(0, ge=0, description='Смещение'),
 ):
     """Получить встречи для команды"""
-    stmt = select(Meeting).options(selectinload(Meeting.participants)).where(Meeting.team_id == team_id)
+    stmt = (
+        select(Meeting)
+        .options(selectinload(Meeting.participants))
+        .where(Meeting.team_id == team_id)
+    )
 
     if organizer_id:
         stmt = stmt.where(Meeting.organizer_id == organizer_id)
@@ -381,7 +434,7 @@ async def update_meeting(
     (доступно толькои админам)
     """
     meeting = await check_meeting(db, meeting_id, user)
-    
+
     return await meeting_crud.update_meeting(db, meeting, meeting_data)
 
 
@@ -396,6 +449,6 @@ async def delete_meeting(
     (доступно только админам)
     """
     meeting = await check_meeting(db, meeting_id, user)
-    
+
     await meeting_crud.delete_meeting(db, meeting)
     return {'detail': f'Встреча {meeting_id} удалена'}

@@ -13,4 +13,7 @@ class MeetingParticipantAdmin(ModelView, model=MeetingParticipant):
         MeetingParticipant.user_id
     ]
     column_searchable_list = [MeetingParticipant.meeting_id]
-    column_sortable_list = [MeetingParticipant.meeting_id, MeetingParticipant.user_id]
+    column_sortable_list = [
+        MeetingParticipant.meeting_id,
+        MeetingParticipant.user_id
+    ]

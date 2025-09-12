@@ -20,7 +20,11 @@ async def get_task(db: AsyncSession, task_id: int) -> Task | None:
     return result.scalars().first()
 
 
-async def update_task(db: AsyncSession, task: Task, task_data: TaskUpdate) -> Task:
+async def update_task(
+        db: AsyncSession,
+        task: Task,
+        task_data: TaskUpdate
+) -> Task:
     """Изменить задачу"""
     for field, value in task_data.model_dump(exclude_unset=True).items():
         setattr(task, field, value)

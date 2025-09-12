@@ -56,7 +56,11 @@ async def test_update_profile(client, session):
 
     response = await client.post(
         '/users/profile/edit',
-        data={'first_name': 'New', 'last_name': 'User', 'email': 'newuser@email.com'}
+        data={
+            'first_name': 'New',
+            'last_name': 'User',
+            'email': 'newuser@email.com'
+        }
     )
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers['location'].startswith('/users/profile?message=')
@@ -112,17 +116,22 @@ async def test_change_password(client, session, monkeypatch):
 
     class FakeUserManager:
         password_helper = FakePasswordHelper()
+
         async def authenticate(self, credentials: OAuth2PasswordRequestForm):
             return test_user if credentials.password == "oldpass" else None
-        
+
     app.dependency_overrides[get_current_user] = lambda: test_user
     app.dependency_overrides[get_user_manager] = lambda: FakeUserManager()
 
     response = await client.post(
         '/users/profile/change-password',
-        data={'current_password': 'oldpass', 'new_password': 'Newpass123', 'confirm_password': 'Newpass123'}   
+        data={
+            'current_password': 'oldpass',
+            'new_password': 'Newpass123',
+            'confirm_password': 'Newpass123'
+        }
     )
-    
+
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers['location'].startswith('/users/profile?message=')
 

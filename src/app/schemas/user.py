@@ -29,11 +29,13 @@ class UserCreate(UserBase):
             )
         if not re.search(r'[A-Za-z]', value):
             raise PydanticCustomError(
-                'password_no_letter', 'Пароль должен содержать хотя бы одну букву'
+                'password_no_letter',
+                'Пароль должен содержать хотя бы одну букву'
             )
         if not re.search(r'\d', value):
             raise PydanticCustomError(
-                'password_no_digit', 'Пароль должен содержать хотя бы одну цифру'
+                'password_no_digit',
+                'Пароль должен содержать хотя бы одну цифру'
                 )
         return value
 

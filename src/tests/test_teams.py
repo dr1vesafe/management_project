@@ -84,7 +84,10 @@ async def test_join_team(client, session):
 
     app.dependency_overrides[get_current_user] = lambda: test_user
 
-    response = await client.post('/teams/join-team', data={'team_code': 'TEAM123'})
+    response = await client.post(
+        '/teams/join-team',
+        data={'team_code': 'TEAM123'}
+    )
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers['location'].startswith('/?message=')
 
@@ -114,7 +117,10 @@ async def test_edit_team_submit(client, session):
 
     app.dependency_overrides[get_current_user] = lambda: test_user
 
-    response = await client.post(f'/teams/{test_team.id}/edit', data={'name': 'NewName'})
+    response = await client.post(
+        f'/teams/{test_team.id}/edit',
+        data={'name': 'NewName'}
+    )
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers['location'] == f'/teams/{test_team.id}'
 

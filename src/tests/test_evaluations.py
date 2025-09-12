@@ -20,7 +20,12 @@ async def test_create_evaluation_submit(client, session):
         role='manager',
         team_id=1
     )
-    test_task = Task(title='Task 1', description='Описание', performer_id=1, team_id=1)
+    test_task = Task(
+        title='Task 1',
+        description='Описание',
+        performer_id=1,
+        team_id=1
+    )
     session.add_all([test_user, test_task])
     await session.commit()
     await session.refresh(test_user)
@@ -35,7 +40,10 @@ async def test_create_evaluation_submit(client, session):
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers['location'] == f'/evaluations/task/{test_task.id}'
 
-    result = await session.execute(select(Evaluation).where(Evaluation.task_id == test_task.id))
+    result = await session.execute(
+        select(Evaluation)
+        .where(Evaluation.task_id == test_task.id)
+    )
     evaluation = result.scalars().first()
     assert evaluation is not None
     assert evaluation.grade.value == 5
@@ -53,8 +61,18 @@ async def test_edit_evaluation_submit(client, session):
         role='manager',
         team_id=1
     )
-    test_task = Task(title='Task 1', description='Описание', performer_id=1, team_id=1)
-    test_evaluation = Evaluation(task_id=1, manager_id=1, user_id=1, grade=EvaluationGrade.THREE)
+    test_task = Task(
+        title='Task 1',
+        description='Описание',
+        performer_id=1,
+        team_id=1
+    )
+    test_evaluation = Evaluation(
+        task_id=1,
+        manager_id=1,
+        user_id=1,
+        grade=EvaluationGrade.THREE
+    )
     session.add_all([test_user, test_task, test_evaluation])
     await session.commit()
     await session.refresh(test_user)
@@ -65,7 +83,10 @@ async def test_edit_evaluation_submit(client, session):
 
     response = await client.post(
         f'/evaluations/{test_evaluation.id}/edit',
-        data={'grade': EvaluationGrade.FIVE.value, 'comment': 'Новый комментарий'}
+        data={
+            'grade': EvaluationGrade.FIVE.value,
+            'comment': 'Новый комментарий'
+        }
     )
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers['location'] == f'/evaluations/task/{test_task.id}'
@@ -86,8 +107,18 @@ async def test_delete_evaluation_submit(client, session):
         role='manager',
         team_id=1
     )
-    test_task = Task(title='Task 1', description='Описание', performer_id=1, team_id=1)
-    test_evaluation = Evaluation(task_id=1, manager_id=1, user_id=1, grade=EvaluationGrade.THREE)
+    test_task = Task(
+        title='Task 1',
+        description='Описание',
+        performer_id=1,
+        team_id=1
+    )
+    test_evaluation = Evaluation(
+        task_id=1,
+        manager_id=1,
+        user_id=1,
+        grade=EvaluationGrade.THREE
+    )
     session.add_all([test_user, test_task, test_evaluation])
     await session.commit()
     await session.refresh(test_user)
@@ -100,6 +131,9 @@ async def test_delete_evaluation_submit(client, session):
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers['location'] == f'/evaluations/task/{test_task.id}'
 
-    result = await session.execute(select(Evaluation).where(Evaluation.id == test_evaluation.id))
+    result = await session.execute(
+        select(Evaluation)
+        .where(Evaluation.id == test_evaluation.id)
+    )
     deleted_eval = result.scalars().first()
     assert deleted_eval is None

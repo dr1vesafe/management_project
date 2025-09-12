@@ -29,10 +29,10 @@ async def test_create_meeting_submit(client, session, monkeypatch):
 
     class DummyMeeting:
         id = 1
-    
+
     async def dummy_create_meeting(db, data, u):
         return DummyMeeting()
-    
+
     monkeypatch.setattr(meeting_crud, 'create_meeting', dummy_create_meeting)
 
     response = await client.post(
@@ -79,7 +79,7 @@ async def test_edit_meeting_submit(client, session, monkeypatch):
 
     async def dummy_update_meeting(db, meeting_obj, data):
         return None
-    
+
     monkeypatch.setattr(meeting_crud, 'update_meeting', dummy_update_meeting)
 
     response = await client.post(
@@ -122,7 +122,7 @@ async def test_delete_meeting_submit(client, session, monkeypatch):
 
     async def dummy_delete_meeting(db, meeting_obj):
         return None
-    
+
     monkeypatch.setattr(meeting_crud, 'delete_meeting', dummy_delete_meeting)
 
     response = await client.post(f'/meetings/{meeting.id}/delete')

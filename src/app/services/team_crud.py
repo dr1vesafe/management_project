@@ -20,7 +20,11 @@ async def get_team(db: AsyncSession, team_id: int) -> Team | None:
     return result.scalars().first()
 
 
-async def update_team(db: AsyncSession, team: Team, team_data: TeamUpdate) -> Team:
+async def update_team(
+        db: AsyncSession,
+        team: Team,
+        team_data: TeamUpdate
+) -> Team:
     """Изменить команду"""
     for field, value in team_data.model_dump(exclude_unset=True).items():
         setattr(team, field, value)

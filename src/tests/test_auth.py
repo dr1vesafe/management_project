@@ -11,11 +11,15 @@ class FakePasswordHelper:
     def hash(self, pwd: str) -> str:
         return f'hashed-{pwd}'
 
+
 class FakeUserManager:
     password_helper = FakePasswordHelper()
 
     async def authenticate(self, credentials: OAuth2PasswordRequestForm):
-        if credentials.username == 'testuser@email.com' and credentials.password == 'password':
+        if (
+            credentials.username == 'testuser@email.com'
+            and credentials.password == 'password'
+        ):
             return User(
                 id=1,
                 email='testuser@email.com',
@@ -28,11 +32,16 @@ class FakeUserManager:
     async def create(self, user_data):
         if user_data.email == 'exists@email.com':
             raise Exception('Пользователь уже существует')
-        user_dict = user_data.model_dump(exclude={'password', 'password_confirm'})
+        user_dict = user_data.model_dump(
+            exclude={
+                'password',
+                'password_confirm'
+                }
+            )
         user_dict['hashed_password'] = f'hashed-{user_data.password}'
 
         return User(id=1, **user_dict)
-    
+
 
 @pytest.fixture(autouse=True)
 def override_dependencies():

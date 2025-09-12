@@ -22,11 +22,15 @@ class Team(Base):
     code: Mapped[str] = mapped_column(
         String, unique=True, nullable=False, default=generate_team_code
     )
-    
-    members = relationship('User', back_populates='team', cascade='all, delete-orphan')
+
+    members = relationship(
+        'User',
+        back_populates='team',
+        cascade='all, delete-orphan'
+    )
 
     def __repr__(self) -> str:
         return f'<Team id={self.id} name={self.name} code={self.code}>'
-    
+
     def __str__(self) -> str:
         return self.name

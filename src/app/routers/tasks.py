@@ -1,7 +1,15 @@
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, Request, Form
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    Query,
+    Request,
+    Form
+)
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +21,7 @@ from src.app.database import get_db
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.models.user import User
 from src.app.models.task import TaskStatus, Task
-from src.app.services import task_crud, task_service
+from src.app.services import task_crud
 
 router = APIRouter(prefix='/tasks', tags=['tasks'])
 templates = Jinja2Templates(directory='src/app/templates')
@@ -28,16 +36,16 @@ async def check_task(
 
     if task.team_id != user.team_id and user.role != 'admin':
         raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN,
-            detail = 'Недостаточно прав'
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
         )
-    
+
     if not task:
         raise HTTPException(
-            status_code = status.HTTP_404_NOT_FOUND,
-            detail = 'Задача не найдена'
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Задача не найдена'
         )
-    
+
     return task
 
 
@@ -54,19 +62,26 @@ async def tasks_page(
     """Страница со списком задач"""
     limit = 10
     offset = (page - 1) * limit
-    query = select(Task).where(Task.team_id == user.team_id).options(selectinload(Task.performer))
-    count_query = select(func.count(Task.id)).where(Task.team_id == user.team_id)
+    query = (
+        select(Task)
+        .where(Task.team_id == user.team_id)
+        .options(selectinload(Task.performer))
+    )
+    count_query = (
+        select(func.count(Task.id))
+        .where(Task.team_id == user.team_id)
+    )
     status_enum = None
     if status:
         try:
             status_enum = TaskStatus(status)
         except ValueError:
             status_enum = None
-    
+
     if status_enum:
         query = query.where(Task.status == status_enum)
         count_query = count_query.where(Task.status == status_enum)
-    
+
     if my_tasks:
         query = query.where(Task.performer_id == user.id)
         count_query = count_query.where(Task.performer_id == user.id)
@@ -98,23 +113,27 @@ async def create_task_page(
     user: User = Depends(require_role('manager', 'admin'))
 ):
     """Страница создания задачи"""
-    performers = (await db.execute(select(User).where(User.team_id == user.team_id))).scalars().all()
+    performers_result = await db.execute(
+        select(User)
+        .where(User.team_id == user.team_id)
+    )
+    performers = performers_result.scalars().all()
     return templates.TemplateResponse(
         request,
         'task/create_task.html',
         {'performers': performers, 'user': user}
     )
 
+
 @router.post('/create')
 async def create_task_submit(
-    request: Request,
     title: str = Form(...),
     description: str = Form(...),
     performer_id: int = Form(...),
     deadline: str = Form(...),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('manager', 'admin'))
-    ):
+):
     """Создание задачи"""
     deadline_date = None
     if deadline:
@@ -132,8 +151,11 @@ async def create_task_submit(
         team_id=user.team_id
     )
     await task_crud.create_task(db, task_data)
-    
-    return RedirectResponse(url='/tasks', status_code=status.HTTP_303_SEE_OTHER)
+
+    return RedirectResponse(
+        url='/tasks',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 @router.get('/{task_id}')
@@ -155,13 +177,13 @@ async def task_detail_page(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Задача не найдена'
         )
-    
+
     if user.team_id != task.team_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Задача не найдена'
         )
-    
+
     can_change_status = (
         user.id == task.performer_id
         or user.role in ('manager', 'admin')
@@ -199,7 +221,7 @@ async def update_task_status(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Задача не найдена'
         )
-    
+
     if user.team_id != task.team_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -214,7 +236,7 @@ async def update_task_status(
             status_code=status.HTTP_403_FORBIDDEN,
             deatil='Недостаточно прав'
         )
-    
+
     task.status = new_status
     db.add(task)
     await db.commit()
@@ -237,7 +259,7 @@ async def update_task_status(
 async def create_task(
     task_data: TaskCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('admin')),
+    _: User = Depends(require_role('admin')),
 ):
     """
     Создание задачи
@@ -250,11 +272,23 @@ async def create_task(
 async def get_tasks_by_team(
     team_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('admin')),
-    task_status: Optional[TaskStatus] = Query(None, description='Фильтраци по статусу задачи'),
-    performer_id: Optional[int] = Query(None, description='Фильтрация по пользователю'),
-    deadline_before: Optional[datetime] = Query(None, description='Дедлайн до даты'),
-    deadline_after: Optional[datetime] = Query(None, description='Дедлайн после даты'),
+    _: User = Depends(require_role('admin')),
+    task_status: Optional[TaskStatus] = Query(
+        None,
+        description='Фильтраци по статусу задачи'
+    ),
+    performer_id: Optional[int] = Query(
+        None,
+        description='Фильтрация по пользователю'
+    ),
+    deadline_before: Optional[datetime] = Query(
+        None,
+        description='Дедлайн до даты'
+    ),
+    deadline_after: Optional[datetime] = Query(
+        None,
+        description='Дедлайн после даты'
+    ),
     limit: int = Query(10, ge=1, le=100, description='Количество записей'),
     offset: int = Query(0, ge=0, description='Смещение'),
 ):
@@ -282,11 +316,23 @@ async def get_tasks_by_team(
 async def get_all_tasks(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role('admin')),
-    task_status: Optional[TaskStatus] = Query(None, description='Фильтраци по статусу задачи'),
-    performer_id: Optional[int] = Query(None, description='Фильтрация по пользователю'),
+    task_status: Optional[TaskStatus] = Query(
+        None,
+        description='Фильтраци по статусу задачи'
+    ),
+    performer_id: Optional[int] = Query(
+        None,
+        description='Фильтрация по пользователю'
+    ),
     team_id: Optional[int] = Query(None, description='Фильрация по команде'),
-    deadline_before: Optional[datetime] = Query(None, description='Дедлайн до даты'),
-    deadline_after: Optional[datetime] = Query(None, description='Дедлайн после даты'),
+    deadline_before: Optional[datetime] = Query(
+        None,
+        description='Дедлайн до даты'
+    ),
+    deadline_after: Optional[datetime] = Query(
+        None,
+        description='Дедлайн после даты'
+    ),
     limit: int = Query(10, ge=1, le=100, description='Количество записей'),
     offset: int = Query(0, ge=0, description='Смещение'),
 ):
@@ -323,7 +369,7 @@ async def get_task(
     (доступно только админам)
     """
     task = await check_task(db, task_id, user)
-    
+
     return task
 
 
@@ -339,7 +385,7 @@ async def update_task(
     (доступно только админам)
     """
     task = await check_task(db, task_id, user)
-    
+
     return await task_crud.update_task(db, task=task, task_data=task_data)
 
 
@@ -354,6 +400,6 @@ async def delete_task(
     (доступно только админам)
     """
     task = await check_task(db, task_id, user)
-    
+
     await task_crud.delete_task(db, task)
     return {'detail': f'Задача {task_id} удалена'}

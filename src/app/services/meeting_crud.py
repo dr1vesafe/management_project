@@ -9,7 +9,11 @@ from src.app.models.meeting_participants import MeetingParticipant
 from src.app.models.user import User
 
 
-async def create_meeting(db: AsyncSession, meeting_data: MeetingCreate, user: User) -> Meeting:
+async def create_meeting(
+        db: AsyncSession,
+        meeting_data: MeetingCreate,
+        user: User
+) -> Meeting:
     """Создать встречу"""
     participants_id = set(meeting_data.participants_id or [])
 
@@ -21,16 +25,23 @@ async def create_meeting(db: AsyncSession, meeting_data: MeetingCreate, user: Us
 
     if participants_id:
         valid_ids = await db.scalars(
-            select(User.id).where(User.id.in_(participants_id), User.team_id == meeting_data.team_id)
+            select(User.id)
+            .where(
+                User.id.in_(participants_id),
+                User.team_id == meeting_data.team_id
+            )
         )
         valid_ids = set(valid_ids.all())
         invalid_ids = participants_id - valid_ids
         if invalid_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Пользователи {invalid_ids} не состоят в команде {meeting_data.team_id}"
+                detail=(
+                    f'Пользователи {invalid_ids} '
+                    f'не состоят в команде {meeting_data.team_id}'
+                )
             )
-    
+
     if meeting_data.add_team_members:
         team_users = await db.execute(
             select(User.id).where(User.team_id == meeting_data.team_id)
@@ -38,7 +49,12 @@ async def create_meeting(db: AsyncSession, meeting_data: MeetingCreate, user: Us
         team_user_ids = {user_id for (user_id,) in team_users.all()}
         participants_id.update(team_user_ids)
 
-    meeting_dict = meeting_data.model_dump(exclude={'participants_id', 'add_team_members'})
+    meeting_dict = meeting_data.model_dump(
+        exclude={
+            'participants_id',
+            'add_team_members'
+        }
+    )
     meeting = Meeting(**meeting_dict)
     db.add(meeting)
     await db.flush()
@@ -57,7 +73,7 @@ async def create_meeting(db: AsyncSession, meeting_data: MeetingCreate, user: Us
         .options(selectinload(Meeting.participants))
         .where(Meeting.id == meeting.id)
     )
-    
+
     return result.scalar_one()
 
 
@@ -78,11 +94,13 @@ async def update_meeting(
     if 'participants' in data:
         participants_data = data.pop('participants')
         await db.execute(
-            select(MeetingParticipant).where(MeetingParticipant.meeting_id == meeting.id)
+            select(MeetingParticipant)
+            .where(MeetingParticipant.meeting_id == meeting.id)
         )
 
         await db.execute(
-            MeetingParticipant.__table__.delete().where(MeetingParticipant.meeting_id == meeting.id)
+            MeetingParticipant.__table__.delete().
+            where(MeetingParticipant.meeting_id == meeting.id)
         )
 
         if participants_data:

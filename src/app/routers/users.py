@@ -1,7 +1,15 @@
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Form
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    Query,
+    Request,
+    Form
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
@@ -11,7 +19,7 @@ from sqlalchemy import select
 from src.app.database import get_db
 from src.app.config import settings
 from src.app.models.user import User, UserRole
-from src.app.schemas.user import UserRead, UserUpdate, ChangePassword
+from src.app.schemas.user import UserRead, UserUpdate
 from src.app.auth.dependencies import get_current_user, require_role
 from src.app.auth.user_manager import get_user_manager, UserManager
 from src.app.services import evaluation_service
@@ -36,12 +44,15 @@ async def profile_page(
             'auth/login.html',
             {'error': 'Войдите в аккаунт'}
         )
-    
+
     try:
-        avg_grade = round(await evaluation_service.get_average_by_user(db, user.id), 1)
+        avg_grade = round(
+            await evaluation_service
+            .get_average_by_user(db, user.id), 1
+        )
     except TypeError:
         avg_grade = 0.0
-        
+
     return templates.TemplateResponse(
         request,
         'profile/profile.html',
@@ -50,9 +61,16 @@ async def profile_page(
 
 
 @router.get('/profile/edit')
-async def edit_profile_page(request: Request, user: User = Depends(get_current_user)):
+async def edit_profile_page(
+    request: Request,
+    user: User = Depends(get_current_user)
+):
     """Страница редактирования профиля"""
-    return templates.TemplateResponse('profile/edit_profile.html', {'request': request, 'user': user})
+    return templates.TemplateResponse(
+        request,
+        'profile/edit_profile.html',
+        {'user': user}
+    )
 
 
 @router.post('/profile/edit')
@@ -73,7 +91,7 @@ async def update_current_user(
             'profile/edit_profile.html',
             {'user': user, 'error': 'Пользователь не найден'}
         )
-    
+
     user.first_name = first_name
     user.last_name = last_name
     user.email = email
@@ -101,7 +119,7 @@ async def delete_current_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Пользователь не найден'
         )
-    
+
     await db.delete(user)
     await db.commit()
     response = RedirectResponse(
@@ -116,12 +134,15 @@ async def delete_current_user(
 
 
 @router.get('/profile/change-password')
-async def change_password_page(request: Request, user: User = Depends(get_current_user)):
+async def change_password_page(
+    request: Request,
+    user: User = Depends(get_current_user)
+):
     """Страница изменения пароля"""
     return templates.TemplateResponse(
         request,
         'profile/change_password.html',
-        {'error': None, 'message': None}
+        {'error': None, 'message': None, 'user': user}
     )
 
 
@@ -172,7 +193,7 @@ async def change_password(
             'profile/change_password.html',
             {'error': error, 'message': None}
         )
-    
+
     user = await db.merge(user)
     user.hashed_password = user_manager.password_helper.hash(new_password)
     db.add(user)
@@ -193,7 +214,7 @@ async def admin_page(request: Request, user: User = Depends(get_current_user)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Unauthorized'
         )
-    
+
     return templates.TemplateResponse(request, 'admin.html')
 
 
@@ -211,7 +232,10 @@ async def submit_secret_key(
         )
 
     if key != SECRET_KEY:
-        return RedirectResponse(url='/secret', status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(
+            url='/secret',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
 
     user = await db.merge(user)
     user.role = 'admin'
@@ -219,7 +243,10 @@ async def submit_secret_key(
     await db.commit()
     await db.refresh(user)
 
-    return RedirectResponse(url='/?message=Вы%20успешно%20стали%20админом', status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(
+        url='/?message=Вы%20успешно%20стали%20админом',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 # Маршруты для администраторов
@@ -230,7 +257,10 @@ async def get_all_users(
     email: Optional[str] = Query(None, description="Фильтрация по email"),
     role: Optional[UserRole] = Query(None, description='Филтрация по роли'),
     team_id: Optional[int] = Query(None, description='Фильтрация по команде'),
-    is_active: Optional[bool] = Query(None, description='Фильтрация по статусу'),
+    is_active: Optional[bool] = Query(
+        None,
+        description='Фильтрация по статусу'
+    ),
     limit: int = Query(10, ge=1, le=100, description='Количество записей'),
     offset: int = Query(0, ge=0, description='Смещение')
 ):
@@ -271,7 +301,7 @@ async def get_user_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Пользователь не найден'
         )
-    
+
     return user
 
 
@@ -293,7 +323,7 @@ async def update_user_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Пользователь не найден'
         )
-    
+
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
 
@@ -344,7 +374,7 @@ async def update_user_role(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Пользователь не найден'
         )
-    
+
     user.role = new_role.value
     await db.commit()
     await db.refresh(user)

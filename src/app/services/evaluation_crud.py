@@ -5,7 +5,10 @@ from src.app.models.evaluation import Evaluation
 from src.app.schemas.evaluation import EvaluationCreate, EvaluationUpdate
 
 
-async def create_evaluation(db: AsyncSession, evaluation_data: EvaluationCreate) -> Evaluation:
+async def create_evaluation(
+        db: AsyncSession,
+        evaluation_data: EvaluationCreate
+) -> Evaluation:
     """Создать оценку"""
     evaluation = Evaluation(**evaluation_data.model_dump())
     db.add(evaluation)
@@ -14,9 +17,14 @@ async def create_evaluation(db: AsyncSession, evaluation_data: EvaluationCreate)
     return evaluation
 
 
-async def get_evaluation(db: AsyncSession, evaluation_id: int) -> Evaluation | None:
+async def get_evaluation(
+        db: AsyncSession,
+        evaluation_id: int
+) -> Evaluation | None:
     """Получить оценку по id"""
-    result = await db.execute(select(Evaluation).where(Evaluation.id == evaluation_id))
+    result = await db.execute(
+        select(Evaluation).where(Evaluation.id == evaluation_id)
+    )
     return result.scalars().first()
 
 

@@ -37,7 +37,10 @@ async def test_create_task_submit(client, session):
     assert response.status_code == status.HTTP_303_SEE_OTHER
     assert response.headers['location'] == '/tasks'
 
-    result = await session.execute(select(Task).where(Task.title == 'Test Task'))
+    result = await session.execute(
+        select(Task)
+        .where(Task.title == 'Test Task')
+    )
     task = result.scalars().first()
     assert task is not None
     assert task.performer_id == test_user.id
@@ -56,7 +59,13 @@ async def test_update_task_status(client, session):
         team_id=1
     )
     session.add(test_user)
-    test_task = Task(title='Status Task', description='Desc', performer_id=test_user.id, team_id=1, status='open')
+    test_task = Task(
+        title='Status Task',
+        description='Описание',
+        performer_id=test_user.id,
+        team_id=1,
+        status='open'
+    )
     session.add(test_task)
     await session.commit()
     await session.refresh(test_user)

@@ -15,7 +15,10 @@ GRADE_TO_INT = {
 async def get_average_by_user(db: AsyncSession, user_id: int) -> float | None:
     """Вычисление средней оценки пользователя"""
     case_stmt = case(
-        *( (Evaluation.grade == grade, value) for grade, value in GRADE_TO_INT.items() ),
+        *(
+            (Evaluation.grade == grade, value)
+            for grade, value in GRADE_TO_INT.items()
+        ),
         else_=0
     )
     result = await db.execute(
@@ -25,11 +28,16 @@ async def get_average_by_user(db: AsyncSession, user_id: int) -> float | None:
     return float(avg_grade) if avg_grade is not None else None
 
 
-
-async def get_average_grade_by_team(db: AsyncSession, team_id: int) -> float | None:
+async def get_average_grade_by_team(
+        db: AsyncSession,
+        team_id: int
+) -> float | None:
     """Вычисление средней оценки по команде"""
     case_stmt = case(
-        *( (Evaluation.grade == grade, value) for grade, value in GRADE_TO_INT.items() ),
+        *(
+            (Evaluation.grade == grade, value)
+            for grade, value in GRADE_TO_INT.items()
+            ),
         else_=0
     )
     result = await db.execute(

@@ -10,12 +10,18 @@ from src.app.models.user import User
 
 
 class OptionalHTTPBearer(HTTPBearer):
-    async def __call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]:
+    async def __call__(
+            self,
+            request: Request
+    ) -> Optional[HTTPAuthorizationCredentials]:
         authorization: str = request.headers.get('Authorization')
         scheme, credentials = get_authorization_scheme_param(authorization)
         if not authorization or scheme.lower() != 'bearer':
             return None
-        return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
+        return HTTPAuthorizationCredentials(
+            scheme=scheme,
+            credentials=credentials
+        )
 
 
 security = OptionalHTTPBearer()
@@ -30,17 +36,24 @@ async def get_current_user(
     if auth_header and auth_header.lower().startswith('bearer '):
         token = auth_header[7:].strip()
     elif request.cookies.get('access_token'):
-        token = request.cookies.get('access_token').removeprefix('Bearer ').strip()
+        token = (
+            request.cookies.get('access_token')
+            .removeprefix('Bearer ')
+            .strip()
+        )
 
     if not token:
         return None
 
     try:
-        user = await access_backend.get_strategy().read_token(token, user_manager)
+        user = await (
+            access_backend.get_strategy()
+            .read_token(token, user_manager)
+        )
         return user
     except Exception:
-        return None 
-    
+        return None
+
 
 def require_role(*roles: str):
     '''Проверка роли пользователя'''

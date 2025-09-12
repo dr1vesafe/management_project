@@ -13,6 +13,7 @@ class TeamAdmin(ModelView, model=Team):
         Team.name,
         Team.code
     ]
+
     column_searchable_list = [Team.name]
     column_sortable_list = [Team.id, Team.name]
 
