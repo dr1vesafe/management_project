@@ -160,6 +160,24 @@ async def create_meeting_submit(
                 'user': user
             }
         )
+
+    conflict_query = await db.execute(
+        select(Meeting)
+        .where(Meeting.team_id == team_id)
+        .where(Meeting.scheduled_at == scheduled_dt)
+    )
+    conflict_meeting = conflict_query.scalars().first()
+
+    if conflict_meeting:
+        return templates.TemplateResponse(
+            request,
+            'meeting/create_meeting.html',
+            {
+                'error': 'На это время уже назначена встреча',
+                'user': user
+            }
+        )
+
     meeting_data = MeetingCreate(
         title=title,
         description=description,
@@ -276,13 +294,37 @@ async def edit_meeting_submit(
     user: User = Depends(require_role('manager', 'admin'))
 ):
     """Изменение встречи"""
+    meeting = await check_meeting(db, meeting_id, user)
+
     try:
         scheduled_dt = datetime.fromisoformat(scheduled_at)
     except ValueError:
         return templates.TemplateResponse(
             request,
-            'meeting/create_meeting.html',
-            {'error': 'Неверный формат даты/времени', 'user': user}
+            'meeting/edit_meeting.html',
+            {
+                'error': 'Неверный формат даты/времени',
+                'user': user,
+                'meeting': meeting
+            }
+        )
+
+    conflict_query = await db.execute(
+        select(Meeting)
+        .where(Meeting.team_id == user.team_id)
+        .where(Meeting.scheduled_at == scheduled_dt)
+    )
+    conflict_meeting = conflict_query.scalars().first()
+
+    if conflict_meeting:
+        return templates.TemplateResponse(
+            request,
+            'meeting/edit_meeting.html',
+            {
+                'error': 'На это время уже назначена встреча',
+                'user': user,
+                'meeting': meeting
+            }
         )
 
     meeting = await check_meeting(db, meeting_id, user)
