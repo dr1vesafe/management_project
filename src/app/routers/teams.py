@@ -57,12 +57,15 @@ async def check_team(
 
 # Маршруты для пользователей
 @router.get('/create')
-async def create_team_page(request: Request):
+async def create_team_page(
+    request: Request,
+    user: User = Depends(require_role('admin'))
+):
     """Страница создания команды"""
     return templates.TemplateResponse(
         request,
         'team/create_team.html',
-        {'error': None}
+        {'error': None, 'user': user}
     )
 
 
@@ -71,7 +74,7 @@ async def create_team_submit(
     request: Request,
     name: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(require_role('admin'))
 ):
     """Создание команды"""
     if user.team_id:
@@ -239,7 +242,7 @@ async def edit_team_page(
     team_id: int,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """Страница изменения команды"""
     team = await check_team(db, team_id, user)
@@ -256,7 +259,7 @@ async def edit_team_submit(
     team_id: int,
     name: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """Изменение команды"""
     team = await check_team(db, team_id, user)
@@ -273,7 +276,7 @@ async def edit_team_submit(
 async def delete_team_submit(
     team_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """Удаление команды"""
     team = await check_team(db, team_id, user)
@@ -302,7 +305,7 @@ async def delete_team_submit(
 async def change_team_code_submit(
     team_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """Генерация нового кода команды"""
     team = await check_team(db, team_id, user)
@@ -322,7 +325,7 @@ async def remove_user_from_team_submit(
     team_id: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """Удалить пользователя из команды"""
     if user.team_id != team_id and user.role.name != 'admin':
@@ -373,7 +376,7 @@ async def promote_user_to_manager(
     team_id: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """Повысить user до manager"""
     if user.team_id != team_id and user.role.name != 'admin':
@@ -416,7 +419,7 @@ async def downgrade_manager_to_user(
     team_id: int,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_role('manager', 'admin'))
+    user: User = Depends(require_role('admin'))
 ):
     """Понизить manager до user"""
     if user.team_id != team_id and user.role.name != 'admin':

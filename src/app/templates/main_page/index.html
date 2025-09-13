@@ -34,7 +34,9 @@
                 {% else %}
                     <p class="card-text text-muted">Вы пока не состоите в команде</p>
                     <a href="/teams/join-team" class="btn btn-success btn-sm">Вступить в команду</a>
+                {% if user.role == 'admin' %}
                     <a href="/teams/create" class="btn btn-success btn-sm">Создать команду</a>
+                {% endif %}
                 {% endif %}
             </div>
         </div>
