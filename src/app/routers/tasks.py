@@ -146,6 +146,7 @@ async def create_task_submit(
         title=title,
         description=description,
         performer_id=performer_id,
+        manager_id=user.id,
         status='open',
         deadline_date=deadline_date,
         team_id=user.team_id
@@ -169,7 +170,10 @@ async def task_detail_page(
     result = await db.execute(
         select(Task)
         .where(Task.id == task_id)
-        .options(selectinload(Task.performer))
+        .options(
+            selectinload(Task.performer),
+            selectinload(Task.manager)
+        )
     )
     task = result.scalars().first()
     if not task:
@@ -186,7 +190,7 @@ async def task_detail_page(
 
     can_change_status = (
         user.id == task.performer_id
-        or user.role in ('manager', 'admin')
+        or user.id == task.manager_id
     )
 
     return templates.TemplateResponse(
@@ -212,7 +216,10 @@ async def update_task_status(
     result = await db.execute(
         select(Task)
         .where(Task.id == task_id)
-        .options(selectinload(Task.performer))
+        .options(
+            selectinload(Task.performer),
+            selectinload(Task.manager)
+        )
     )
     task = result.scalars().first()
 
@@ -230,7 +237,7 @@ async def update_task_status(
 
     if not (
         user.id == task.performer_id
-        or user.role in ('manager', 'admin')
+        or user.id == task.manager_id
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -251,6 +258,100 @@ async def update_task_status(
             'message': 'Статус задачи обновлен',
             'user': user
         }
+    )
+
+
+@router.get('/{task_id}/edit')
+async def edit_task_page(
+    task_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Страница изменения задачи"""
+    task = await check_task(db, task_id, user)
+
+    if task.manager_id != user.id and user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав для редактирования задачи'
+        )
+
+    performers_result = await db.execute(
+        select(User).where(User.team_id == user.team_id)
+    )
+    performers = performers_result.scalars().all()
+
+    return templates.TemplateResponse(
+        request,
+        'task/edit_task.html',
+        {'task': task, 'performers': performers, 'user': user}
+    )
+
+
+@router.post('/{task_id}/edit')
+async def edit_task_submit(
+    task_id: int,
+    title: str = Form(...),
+    description: str = Form(...),
+    performer_id: int = Form(...),
+    deadline: str = Form(...),
+    task_status: TaskStatus = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Изменение задачи"""
+    task = await check_task(db, task_id, user)
+
+    if task.manager_id != user.id and user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав для редактирования задачи'
+        )
+
+    deadline_date = None
+    if deadline:
+        try:
+            deadline_date = datetime.strptime(deadline, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            pass
+
+    task_data = TaskUpdate(
+        title=title,
+        description=description,
+        performer_id=performer_id,
+        status=task_status,
+        deadline_date=deadline_date
+    )
+
+    await task_crud.update_task(db, task, task_data)
+
+    return RedirectResponse(
+        url=f'/tasks/{task_id}',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+@router.post('/{task_id}/delete')
+async def delete_task_submit(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role('manager', 'admin'))
+):
+    """Удаление задачи"""
+    task = await check_task(db, task_id, user)
+
+    if task.manager_id != user.id and user.role != 'admin':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав для удаления задачи'
+        )
+
+    await task_crud.delete_task(db, task)
+
+    return RedirectResponse(
+        url='/tasks?message=Задача%20удалена',
+        status_code=status.HTTP_303_SEE_OTHER
     )
 
 

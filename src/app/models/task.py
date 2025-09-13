@@ -52,7 +52,22 @@ class Task(Base):
         ForeignKey('users.id', ondelete='SET NULL'),
         nullable=True
     )
-    performer = relationship('User', backref='tasks')
+    performer = relationship(
+        'User',
+        foreign_keys=[performer_id],
+        backref='tasks'
+    )
+
+    manager_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey('users.id', ondelete='SET NULL'),
+        nullable=True
+    )
+    manager = relationship(
+        'User',
+        foreign_keys=[manager_id],
+        backref='managed_tasks'
+    )
 
     team_id: Mapped[int] = mapped_column(
         Integer,

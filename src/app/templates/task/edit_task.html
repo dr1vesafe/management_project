@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование задачи{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2>Редактировать задачу</h2>
+  <form action="/tasks/{{ task.id }}/edit" method="post">
+    <div class="mb-3">
+      <label for="title" class="form-label">Название</label>
+      <input type="text" id="title" name="title" value="{{ task.title }}" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label for="description" class="form-label">Описание</label>
+      <textarea id="description" name="description" class="form-control" required>{{ task.description }}</textarea>
+    </div>
+    <div class="mb-3">
+      <label for="performer_id" class="form-label">Исполнитель</label>
+      <select id="performer_id" name="performer_id" class="form-select">
+        {% for performer in performers %}
+        <option value="{{ performer.id }}" {% if performer.id == task.performer_id %}selected{% endif %}>
+          {{ performer.first_name }} {{ performer.last_name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label for="deadline" class="form-label">Дедлайн</label>
+      <input type="datetime-local" id="deadline" name="deadline" value="{{ task.deadline_date|default('', true) }}" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label for="status" class="form-label">Статус</label>
+      <select id="task_status" name="task_status" class="form-select">
+        <option value="open" {% if task.status.value == "open" %}selected{% endif %}>Открыта</option>
+        <option value="in_progress" {% if task.status.value == "in_progress" %}selected{% endif %}>В процессе</option>
+        <option value="done" {% if task.status.value == "done" %}selected{% endif %}>Выполнена</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a href="/tasks/{{ task.id }}" class="btn btn-secondary">Отмена</a>
+  </form>
+</div>
+{% endblock %}

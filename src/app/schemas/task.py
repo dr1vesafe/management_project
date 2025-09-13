@@ -13,6 +13,7 @@ class TaskBase(BaseModel):
     status: TaskStatus = TaskStatus.open
     deadline_date: Optional[datetime] = None
     performer_id: Optional[int] = None
+    manager_id: Optional[int] = None
     team_id: int
 
 
