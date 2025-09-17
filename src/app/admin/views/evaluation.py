@@ -24,5 +24,8 @@ class EvaluationAdmin(ModelView, model=Evaluation):
 
     form_columns = [
         Evaluation.grade,
-        Evaluation.comment
+        Evaluation.comment,
+        Evaluation.task,
+        Evaluation.manager,
+        Evaluation.user
     ]

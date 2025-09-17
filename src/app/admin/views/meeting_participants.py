@@ -17,3 +17,8 @@ class MeetingParticipantAdmin(ModelView, model=MeetingParticipant):
         MeetingParticipant.meeting_id,
         MeetingParticipant.user_id
     ]
+
+    form_columns = [
+        MeetingParticipant.meeting,
+        MeetingParticipant.user
+    ]

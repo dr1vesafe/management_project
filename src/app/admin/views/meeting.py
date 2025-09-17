@@ -25,5 +25,8 @@ class MeetingAdmin(ModelView, model=Meeting):
 
     form_columns = [
         Meeting.title,
-        Meeting.scheduled_at
+        Meeting.description,
+        Meeting.scheduled_at,
+        Meeting.organizer,
+        Meeting.team
     ]
