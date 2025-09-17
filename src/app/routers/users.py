@@ -215,11 +215,16 @@ async def admin_page(request: Request, user: User = Depends(get_current_user)):
             detail='Unauthorized'
         )
 
-    return templates.TemplateResponse(request, 'admin.html')
+    return templates.TemplateResponse(
+        request,
+        'admin.html',
+        {'user': user}
+    )
 
 
 @router.post('/admin')
 async def submit_secret_key(
+    request: Request,
     key: str = Form(...),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
@@ -231,6 +236,15 @@ async def submit_secret_key(
             detail='Unauthorized'
         )
 
+    if user.role == 'admin':
+        return templates.TemplateResponse(
+            request,
+            'admin.html',
+            {
+                'user': user,
+                'error': 'Вы уже admin'
+            }
+        )
     if key != SECRET_KEY:
         return RedirectResponse(
             url='/secret',
