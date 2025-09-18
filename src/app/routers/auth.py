@@ -117,6 +117,7 @@ async def resgister_submit(
     first_name: str = Form(...),
     last_name: str = Form(...),
     email: str = Form(...),
+    email_confirm: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
     user_manager=Depends(get_user_manager)
@@ -127,6 +128,13 @@ async def resgister_submit(
             request,
             'auth/register.html',
             {'error': 'Пароли не совпадают'}
+        )
+
+    if email != email_confirm:
+        return templates.TemplateResponse(
+            request,
+            'auth/register.html',
+            {'error': 'Email не совпадают'}
         )
 
     try:
