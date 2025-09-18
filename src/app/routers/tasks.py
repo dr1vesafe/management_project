@@ -15,6 +15,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
+from pydantic import ValidationError
 
 from src.app.schemas.task import TaskRead, TaskCreate, TaskUpdate
 from src.app.database import get_db
@@ -127,6 +128,7 @@ async def create_task_page(
 
 @router.post('/create')
 async def create_task_submit(
+    request: Request,
     title: str = Form(...),
     description: str = Form(...),
     performer_id: int = Form(...),
@@ -135,22 +137,52 @@ async def create_task_submit(
     user: User = Depends(require_role('manager', 'admin'))
 ):
     """Создание задачи"""
-    deadline_date = None
-    if deadline:
-        try:
-            deadline_date = datetime.strptime(deadline, '%Y-%m-%dT%H:%M')
-        except ValueError:
-            pass
+    try:
+        deadline = datetime.fromisoformat(deadline)
+    except ValueError:
+        performers_result = await db.execute(
+            select(User)
+            .where(User.team_id == user.team_id)
+        )
+        performers = performers_result.scalars().all()
+        return templates.TemplateResponse(
+            request,
+            'task/create_task.html',
+            {
+                'performers': performers,
+                'user': user,
+                'error': 'Неверный формат даты'
+            }
+        )
 
-    task_data = TaskCreate(
-        title=title,
-        description=description,
-        performer_id=performer_id,
-        manager_id=user.id,
-        status='open',
-        deadline_date=deadline_date,
-        team_id=user.team_id
-    )
+    try:
+        task_data = TaskCreate(
+            title=title,
+            description=description,
+            performer_id=performer_id,
+            manager_id=user.id,
+            status='open',
+            deadline_date=deadline,
+            team_id=user.team_id
+        )
+    except ValidationError as e:
+        performers_result = await db.execute(
+            select(User)
+            .where(User.team_id == user.team_id)
+        )
+        performers = performers_result.scalars().all()
+
+        error_msg = '; '.join(err['msg'] for err in e.errors())
+        return templates.TemplateResponse(
+            request,
+            'task/create_task.html',
+            {
+                'performers': performers,
+                'user': user,
+                'error': error_msg
+            }
+        )
+
     await task_crud.create_task(db, task_data)
 
     return RedirectResponse(
@@ -291,6 +323,7 @@ async def edit_task_page(
 
 @router.post('/{task_id}/edit')
 async def edit_task_submit(
+    request: Request,
     task_id: int,
     title: str = Form(...),
     description: str = Form(...),
@@ -309,20 +342,50 @@ async def edit_task_submit(
             detail='Недостаточно прав для редактирования задачи'
         )
 
-    deadline_date = None
-    if deadline:
-        try:
-            deadline_date = datetime.strptime(deadline, '%Y-%m-%dT%H:%M')
-        except ValueError:
-            pass
+    try:
+        deadline = datetime.fromisoformat(deadline)
+    except ValueError:
+        performers_result = await db.execute(
+            select(User)
+            .where(User.team_id == user.team_id)
+        )
+        performers = performers_result.scalars().all()
+        return templates.TemplateResponse(
+            request,
+            'task/edit_task.html',
+            {
+                'task': task,
+                'performers': performers,
+                'user': user,
+                'error': 'Неверный формат даты'
+            }
+        )
 
-    task_data = TaskUpdate(
-        title=title,
-        description=description,
-        performer_id=performer_id,
-        status=task_status,
-        deadline_date=deadline_date
-    )
+    try:
+        task_data = TaskUpdate(
+            title=title,
+            description=description,
+            performer_id=performer_id,
+            status=task_status,
+            deadline_date=deadline
+        )
+    except ValidationError as e:
+        performers_result = await db.execute(
+            select(User).where(User.team_id == user.team_id)
+        )
+        performers = performers_result.scalars().all()
+
+        error_msg = '; '.join(err['msg'] for err in e.errors())
+        return templates.TemplateResponse(
+            request,
+            'task/edit_task.html',
+            {
+                'task': task,
+                'performers': performers,
+                'user': user,
+                'error': error_msg
+            }
+        )
 
     await task_crud.update_task(db, task, task_data)
 

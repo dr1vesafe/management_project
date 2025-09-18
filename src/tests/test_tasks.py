@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import pytest
 from fastapi import status
 from sqlalchemy import select
@@ -25,13 +27,14 @@ async def test_create_task_submit(client, session):
 
     app.dependency_overrides[get_current_user] = lambda: test_user
 
+    deadline_date = datetime.now() + timedelta(hours=2)
     response = await client.post(
         '/tasks/create',
         data={
             'title': 'Test Task',
             'description': 'Task description',
             'performer_id': test_user.id,
-            'deadline': '2025-12-31T12:00'
+            'deadline': deadline_date
         }
     )
     assert response.status_code == status.HTTP_303_SEE_OTHER

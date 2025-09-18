@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import status
 
 from src.app.models.user import User
@@ -35,12 +35,13 @@ async def test_create_meeting_submit(client, session, monkeypatch):
 
     monkeypatch.setattr(meeting_crud, 'create_meeting', dummy_create_meeting)
 
+    scheduled_at = datetime.now() + timedelta(hours=2)
     response = await client.post(
         '/meetings/create',
         data={
             'title': 'New Meeting',
             'description': 'Описание',
-            'scheduled_at': '2025-01-01T12:00',
+            'scheduled_at': scheduled_at,
             'team_id': 1,
             'organizer_id': test_user.id,
             'participant_ids': [],
@@ -82,12 +83,13 @@ async def test_edit_meeting_submit(client, session, monkeypatch):
 
     monkeypatch.setattr(meeting_crud, 'update_meeting', dummy_update_meeting)
 
+    scheduled_at = datetime.now() + timedelta(hours=2)
     response = await client.post(
         f'/meetings/{meeting.id}/edit',
         data={
             'title': 'Updated Meeting',
             'description': 'Новое описание',
-            'scheduled_at': '2025-01-02T15:00'
+            'scheduled_at': scheduled_at
         }
     )
     assert response.status_code == status.HTTP_303_SEE_OTHER

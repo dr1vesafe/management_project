@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic_core import PydanticCustomError
 
 from src.app.models.task import TaskStatus
 
@@ -21,6 +22,15 @@ class TaskCreate(TaskBase):
     """Схема для создания задачи"""
     pass
 
+    @field_validator('deadline_date')
+    def validate_deadline_date(cls, value: datetime) -> datetime:
+        if value is not None and value < datetime.now():
+            raise PydanticCustomError(
+                'incorrect_date',
+                'Дата дедлайна не может быть в прошлом'
+            )
+        return value
+
 
 class TaskRead(TaskBase):
     """Схема для получения данных задачи"""
@@ -39,3 +49,12 @@ class TaskUpdate(BaseModel):
     deadline_date: Optional[datetime] = None
     performer_id: Optional[int] = None
     team_id: Optional[int] = None
+
+    @field_validator('deadline_date')
+    def validate_deadline_date(cls, value: datetime) -> datetime:
+        if value is not None and value < datetime.now():
+            raise PydanticCustomError(
+                'incorrect_date',
+                'Дата дедлайна не может быть в прошлом'
+            )
+        return value

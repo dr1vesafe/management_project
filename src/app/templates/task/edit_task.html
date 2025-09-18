@@ -5,6 +5,11 @@
 {% block content %}
 <div class="container mt-5">
   <h2>Редактировать задачу</h2>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
   <form action="/tasks/{{ task.id }}/edit" method="post">
     <div class="mb-3">
       <label for="title" class="form-label">Название</label>
