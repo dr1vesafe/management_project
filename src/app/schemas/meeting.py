@@ -1,8 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_core import PydanticCustomError
+
+MSK = timezone(timedelta(hours=3))
 
 
 class MeetingParticipantBase(BaseModel):
@@ -39,7 +41,7 @@ class MeetingCreate(MeetingBase):
 
     @field_validator('scheduled_at')
     def validate_scheduled_at(cls, value: datetime) -> datetime:
-        if value < datetime.now():
+        if value < datetime.now(MSK).replace(tzinfo=None):
             raise PydanticCustomError(
                 'incorrect_date',
                 'Дата встречи не может быть в прошлом'
@@ -65,7 +67,7 @@ class MeetingUpdate(MeetingBase):
 
     @field_validator('scheduled_at')
     def validate_scheduled_at(cls, value: datetime) -> datetime:
-        if value < datetime.now():
+        if value < datetime.now(MSK).replace(tzinfo=None):
             raise PydanticCustomError(
                 'incorrect_date',
                 'Дата встречи не может быть в прошлом'

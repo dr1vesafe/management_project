@@ -1,10 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_core import PydanticCustomError
 
 from src.app.models.task import TaskStatus
+
+MSK = timezone(timedelta(hours=3))
 
 
 class TaskBase(BaseModel):
@@ -24,7 +26,10 @@ class TaskCreate(TaskBase):
 
     @field_validator('deadline_date')
     def validate_deadline_date(cls, value: datetime) -> datetime:
-        if value is not None and value < datetime.now():
+        if (
+            value is not None and
+            value < datetime.now(MSK).replace(tzinfo=None)
+        ):
             raise PydanticCustomError(
                 'incorrect_date',
                 'Дата дедлайна не может быть в прошлом'
@@ -52,7 +57,10 @@ class TaskUpdate(BaseModel):
 
     @field_validator('deadline_date')
     def validate_deadline_date(cls, value: datetime) -> datetime:
-        if value is not None and value < datetime.now():
+        if (
+            value is not None and
+            value < datetime.now(MSK).replace(tzinfo=None)
+        ):
             raise PydanticCustomError(
                 'incorrect_date',
                 'Дата дедлайна не может быть в прошлом'

@@ -114,6 +114,12 @@ async def create_task_page(
     user: User = Depends(require_role('manager', 'admin'))
 ):
     """Страница создания задачи"""
+    if user.team_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+
     performers_result = await db.execute(
         select(User)
         .where(User.team_id == user.team_id)

@@ -123,6 +123,12 @@ async def create_meeting_page(
     user: User = Depends(require_role('manager', 'admin'))
 ):
     """Страница создания встречи"""
+    if user.team_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Недостаточно прав'
+        )
+
     result = await db.execute(select(User).where(User.team_id == user.team_id))
     team_members = result.scalars().all()
 
@@ -282,7 +288,7 @@ async def meeting_detail_page(
 
     if user.team_id != meeting.team_id and user.role != 'admin':
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail='Встреча не найдена'
         )
 
