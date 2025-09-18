@@ -72,7 +72,10 @@ async def create_team_page(
 @router.post('/create')
 async def create_team_submit(
     request: Request,
-    name: str = Form(...),
+    name: str = Form(
+        ...,
+        description='Введите название'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('admin'))
 ):
@@ -144,7 +147,10 @@ async def join_team_page(request: Request):
 @router.post('/join-team')
 async def join_team(
     request: Request,
-    team_code: str = Form(...),
+    team_code: str = Form(
+        ...,
+        description='Введите код команды'
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -257,7 +263,10 @@ async def edit_team_page(
 @router.post('/{team_id}/edit')
 async def edit_team_submit(
     team_id: int,
-    name: str = Form(...),
+    name: str = Form(
+        ...,
+        description='Введите название'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('admin'))
 ):

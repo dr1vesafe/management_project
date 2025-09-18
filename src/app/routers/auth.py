@@ -25,8 +25,14 @@ async def login_page(request: Request):
 @router.post('/login')
 async def login_submit(
     request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
+    username: str = Form(
+        ...,
+        description='Введите email'
+    ),
+    password: str = Form(
+        ...,
+        description='Введите пароль'
+    ),
     user_manager: UserManager = Depends(get_user_manager)
 ):
     """Аутентификация пользователя"""
@@ -114,12 +120,30 @@ async def register_page(request: Request):
 @router.post('/register')
 async def resgister_submit(
     request: Request,
-    first_name: str = Form(...),
-    last_name: str = Form(...),
-    email: str = Form(...),
-    email_confirm: str = Form(...),
-    password: str = Form(...),
-    password_confirm: str = Form(...),
+    first_name: str = Form(
+        ...,
+        description='Введите имя'
+    ),
+    last_name: str = Form(
+        ...,
+        description='Введите фамилию'
+    ),
+    email: str = Form(
+        ...,
+        description='Введите email'
+    ),
+    email_confirm: str = Form(
+        ...,
+        description='Подтвердите email'
+    ),
+    password: str = Form(
+        ...,
+        description='Введите пароль'
+    ),
+    password_confirm: str = Form(
+        ...,
+        description='Подтвердите пароль'
+    ),
     user_manager=Depends(get_user_manager)
 ):
     """Регистрация пользователя"""

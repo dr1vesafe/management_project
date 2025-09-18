@@ -129,10 +129,22 @@ async def create_task_page(
 @router.post('/create')
 async def create_task_submit(
     request: Request,
-    title: str = Form(...),
-    description: str = Form(...),
-    performer_id: int = Form(...),
-    deadline: str = Form(...),
+    title: str = Form(
+        ...,
+        description='Введите заголовок задачи'
+    ),
+    description: str = Form(
+        ...,
+        description='Введите описание'
+    ),
+    performer_id: int = Form(
+        ...,
+        description='Введите id исполнителя задачи'
+    ),
+    deadline: str = Form(
+        ...,
+        description=f'Введите дату, пример: {datetime.now()}'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('manager', 'admin'))
 ):
@@ -240,7 +252,10 @@ async def task_detail_page(
 async def update_task_status(
     task_id: int,
     request: Request,
-    new_status: TaskStatus = Form(...),
+    new_status: TaskStatus = Form(
+        ...,
+        description='Выберите статус'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
@@ -325,11 +340,26 @@ async def edit_task_page(
 async def edit_task_submit(
     request: Request,
     task_id: int,
-    title: str = Form(...),
-    description: str = Form(...),
-    performer_id: int = Form(...),
-    deadline: str = Form(...),
-    task_status: TaskStatus = Form(...),
+    title: str = Form(
+        ...,
+        description='Введите заголовок задачи'
+    ),
+    description: str = Form(
+        ...,
+        description='Введите описание'
+    ),
+    performer_id: int = Form(
+        ...,
+        description='Введите id исполнителя'
+    ),
+    deadline: str = Form(
+        ...,
+        description=f'Введите дату, пример: {datetime.now()}'
+    ),
+    task_status: TaskStatus = Form(
+        ...,
+        description='Выберите статус'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('manager', 'admin'))
 ):

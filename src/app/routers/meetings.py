@@ -140,12 +140,30 @@ async def create_meeting_page(
 @router.post('/create')
 async def create_meeting_submit(
     request: Request,
-    title: str = Form(...),
-    description: str = Form(""),
-    scheduled_at: str = Form(...),
-    team_id: int = Form(...),
-    participant_ids: list[int] = Form(default=[]),
-    add_all_team: bool = Form(False),
+    title: str = Form(
+        ...,
+        description='Введите заголовок встречи'
+    ),
+    description: str = Form(
+        "",
+        description='Введите описание'
+    ),
+    scheduled_at: str = Form(
+        ...,
+        description=f'Введите дату, пример: {datetime.now()}'
+    ),
+    team_id: int = Form(
+        ...,
+        description='Введите id команды'
+    ),
+    participant_ids: list[int] = Form(
+        default=[],
+        description='Введите id участников встречи'
+    ),
+    add_all_team: bool = Form(
+        False,
+        description='Добавить всю команду'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('manager', 'admin'))
 ):
@@ -319,9 +337,18 @@ async def edit_meeting_page(
 async def edit_meeting_submit(
     meeting_id: int,
     request: Request,
-    title: str = Form(...),
-    description: str = Form(...),
-    scheduled_at: str = Form(...),
+    title: str = Form(
+        ...,
+        description='Введите заголовок встречи'
+    ),
+    description: str = Form(
+        ...,
+        description='Введите описание'
+    ),
+    scheduled_at: str = Form(
+        ...,
+        description=f'Введите дату, пример: {datetime.now()}'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('manager', 'admin'))
 ):
@@ -506,7 +533,7 @@ async def get_meetings_by_team(
     return result.scalars().all()
 
 
-@router.put('/{meeting_id}', response_model=MeetingRead)
+@router.put('/admin/{meeting_id}', response_model=MeetingRead)
 async def update_meeting(
     meeting_id: int,
     meeting_data: MeetingUpdate,
@@ -522,7 +549,7 @@ async def update_meeting(
     return await meeting_crud.update_meeting(db, meeting, meeting_data)
 
 
-@router.delete('/{meeting_id}')
+@router.delete('/admin/{meeting_id}')
 async def delete_meeting(
     meeting_id: int,
     db: AsyncSession = Depends(get_db),

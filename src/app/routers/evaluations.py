@@ -130,8 +130,14 @@ async def create_evaluation_page(
 @router.post('/task/{task_id}/create')
 async def create_evalution_submit(
     task_id: int,
-    grade: int = Form(...),
-    comment: str = Form(''),
+    grade: EvaluationGrade = Form(
+        ...,
+        description='Выберите оценку'
+    ),
+    comment: str = Form(
+        '',
+        description='Введите комментарий'
+    ),
     db: AsyncSession = Depends(get_db),
     manager: User = Depends(require_role('manager', 'admin'))
 ):
@@ -208,9 +214,14 @@ async def edit_evaluation_page(
 @router.post('/{evaluation_id}/edit')
 async def edit_evaluation_submit(
     evaluation_id: int,
-    request: Request,
-    grade: int = Form(...),
-    comment: str = Form(""),
+    grade: EvaluationGrade = Form(
+        ...,
+        description='Выберите оценку'
+    ),
+    comment: str = Form(
+        "",
+        description='Введите комментарий'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role('manager', 'admin'))
 ):

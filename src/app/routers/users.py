@@ -76,9 +76,18 @@ async def edit_profile_page(
 @router.post('/profile/edit')
 async def update_current_user(
     request: Request,
-    first_name: str = Form(...),
-    last_name: str = Form(...),
-    email: str = Form(...),
+    first_name: str = Form(
+        ...,
+        description='Введите имя'
+    ),
+    last_name: str = Form(
+        ...,
+        description='Введите фамилию'
+    ),
+    email: str = Form(
+        ...,
+        description='Введите email'
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -149,9 +158,18 @@ async def change_password_page(
 @router.post('/profile/change-password')
 async def change_password(
     request: Request,
-    current_password: str = Form(...),
-    new_password: str = Form(...),
-    confirm_password: str = Form(...),
+    current_password: str = Form(
+        ...,
+        description='Введите текущий пароль'
+    ),
+    new_password: str = Form(
+        ...,
+        description='Введите новый пароль'
+    ),
+    confirm_password: str = Form(
+        ...,
+        description='Подтвердите новый пароль'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
     user_manager: UserManager = Depends(get_user_manager)
@@ -225,7 +243,10 @@ async def admin_page(request: Request, user: User = Depends(get_current_user)):
 @router.post('/admin')
 async def submit_secret_key(
     request: Request,
-    key: str = Form(...),
+    key: str = Form(
+        ...,
+        description='Введите секретный ключ'
+    ),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
