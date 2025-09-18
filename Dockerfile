@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential gcc libpq-dev curl \
+    build-essential gcc libpq-dev curl dos2unix \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN python -m pip install --upgrade pip setuptools wheel \
 COPY . .
 
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN dos2unix /entrypoint.sh && chmod +x /entrypoint.sh
 
 EXPOSE 8000
 
