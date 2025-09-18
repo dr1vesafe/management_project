@@ -15,6 +15,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
+from pydantic import ValidationError
 
 from src.app.schemas.meeting import MeetingRead, MeetingCreate, MeetingUpdate
 from src.app.database import get_db
@@ -152,12 +153,17 @@ async def create_meeting_submit(
     try:
         scheduled_dt = datetime.fromisoformat(scheduled_at)
     except ValueError:
+        result = await db.execute(
+            select(User).where(User.team_id == user.team_id)
+        )
+        team_members = result.scalars().all()
         return templates.TemplateResponse(
             'meeting/create_meeting.html',
             {
                 'request': request,
                 'error': 'Неверный формат даты/времени',
-                'user': user
+                'user': user,
+                'team_members': team_members
             }
         )
 
@@ -169,35 +175,61 @@ async def create_meeting_submit(
     conflict_meeting = conflict_query.scalars().first()
 
     if conflict_meeting:
+        result = await db.execute(
+            select(User).where(User.team_id == user.team_id)
+        )
+        team_members = result.scalars().all()
         return templates.TemplateResponse(
             request,
             'meeting/create_meeting.html',
             {
                 'error': 'На это время уже назначена встреча',
-                'user': user
+                'user': user,
+                'team_members': team_members
             }
         )
 
-    meeting_data = MeetingCreate(
-        title=title,
-        description=description,
-        scheduled_at=scheduled_dt,
-        team_id=team_id,
-        participants_id=participant_ids,
-        add_team_members=add_all_team
-    )
+    try:
+        meeting_data = MeetingCreate(
+            title=title,
+            description=description,
+            scheduled_at=scheduled_dt,
+            team_id=team_id,
+            participants_id=participant_ids,
+            add_team_members=add_all_team
+        )
+    except ValidationError as e:
+        result = await db.execute(
+            select(User).where(User.team_id == user.team_id)
+        )
+        team_members = result.scalars().all()
+        error_msg = '; '.join(err['msg'] for err in e.errors())
+        return templates.TemplateResponse(
+            request,
+            'meeting/create_meeting.html',
+            {
+                'error': error_msg,
+                'user': user,
+                'team_members': team_members
+            }
+        )
 
     if (
         meeting_data.team_id and
         user.team_id != meeting_data.team_id and
         user.role != 'admin'
     ):
+        result = await db.execute(
+            select(User).where(User.team_id == user.team_id)
+        )
+        team_members = result.scalars().all()
         return templates.TemplateResponse(
             request,
             'meeting/create_meeting.html',
             {
                 'error': 'Недостаточно прав для создания встречи',
-                'user': user
+                'user': user,
+                'team_members': team_members
             }
         )
 
@@ -327,13 +359,23 @@ async def edit_meeting_submit(
             }
         )
 
-    meeting = await check_meeting(db, meeting_id, user)
-
-    meeting_data = MeetingUpdate(
-        title=title,
-        description=description,
-        scheduled_at=scheduled_dt
-    )
+    try:
+        meeting_data = MeetingUpdate(
+            title=title,
+            description=description,
+            scheduled_at=scheduled_dt
+        )
+    except ValidationError as e:
+        error_msg = '; '.join(err['msg'] for err in e.errors())
+        return templates.TemplateResponse(
+            request,
+            'meeting/edit_meeting.html',
+            {
+                'error': error_msg,
+                'user': user,
+                'meeting': meeting
+            }
+        )
 
     await meeting_crud.update_meeting(db, meeting, meeting_data)
     return RedirectResponse(

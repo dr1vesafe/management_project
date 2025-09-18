@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic_core import PydanticCustomError
 
 
 class MeetingParticipantBase(BaseModel):
@@ -36,6 +37,15 @@ class MeetingCreate(MeetingBase):
     participants_id: Optional[List[int]] = []
     add_team_members: bool = False
 
+    @field_validator('scheduled_at')
+    def validate_scheduled_at(cls, value: datetime) -> datetime:
+        if value < datetime.now():
+            raise PydanticCustomError(
+                'incorrect_date',
+                'Дата встречи не может быть в прошлом'
+            )
+        return value
+
 
 class MeetingRead(MeetingBase):
     """Схема для получения данных встречи"""
@@ -52,3 +62,12 @@ class MeetingUpdate(MeetingBase):
     description: Optional[str] = None
     scheduled_at: Optional[datetime] = None
     participants: Optional[List[MeetingParticipantCreate]] = None
+
+    @field_validator('scheduled_at')
+    def validate_scheduled_at(cls, value: datetime) -> datetime:
+        if value < datetime.now():
+            raise PydanticCustomError(
+                'incorrect_date',
+                'Дата встречи не может быть в прошлом'
+            )
+        return value
