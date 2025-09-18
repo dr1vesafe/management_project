@@ -45,7 +45,12 @@ docker-compose up --build
 
 5. Запуск тестов:
 ```bash
-docker-compose exec web python -m pytest
+docker-compose exec app python -m pytest
+```
+
+6. Проверка покрытия тестами:
+```bash
+docker-compose exec app python -m pytest --cov
 ```
 
 Проект доступен по адресу: http://localhost:8000
