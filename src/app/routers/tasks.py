@@ -241,7 +241,7 @@ async def update_task_status(
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            deatil='Недостаточно прав'
+            detail='Недостаточно прав'
         )
 
     task.status = new_status

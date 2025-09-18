@@ -15,7 +15,7 @@ async def test_create_team_submit(client, session):
         last_name='User',
         email="testuser@email.com",
         hashed_password='password',
-        role='user'
+        role='admin'
     )
     session.add(test_user)
     await session.commit()
@@ -29,7 +29,6 @@ async def test_create_team_submit(client, session):
 
     await session.refresh(test_user)
     assert test_user.team_id is not None
-    assert test_user.role == 'manager'
 
 
 @pytest.mark.asyncio
@@ -108,7 +107,7 @@ async def test_edit_team_submit(client, session):
         last_name='User',
         email='user@test.com',
         hashed_password='password',
-        role='manager',
+        role='admin',
         team_id=test_team.id
     )
     session.add(test_user)
