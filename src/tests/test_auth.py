@@ -81,6 +81,7 @@ async def test_register_submit_success(client):
             'first_name': 'Test',
             'last_name': 'User',
             'email': 'newuser@email.com',
+            'email_confirm': 'newuser@email.com',
             'password': 'Password123',
             'password_confirm': 'Password123'
         }
@@ -98,6 +99,7 @@ async def test_register_submit_password_mismatch(client):
             'first_name': 'Test',
             'last_name': 'User',
             'email': 'newuser@email.com',
+            'email_confirm': 'newuser@email.com',
             'password': 'Password123',
             'password_confirm': 'Mismatch123'
         }
@@ -115,6 +117,7 @@ async def test_register_submit_existing_user(client):
             'first_name': 'Test',
             'last_name': 'User',
             'email': 'exists@email.com',
+            'email_confirm': 'exists@email.com',
             'password': 'Password123',
             'password_confirm': 'Password123'
         }
